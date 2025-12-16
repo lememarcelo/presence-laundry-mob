@@ -1,0 +1,23 @@
+/**
+ * Auth Stack - Navegação para telas não autenticadas
+ * Apenas contém a tela de Login
+ */
+
+import React from "react";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { AuthStackParamList } from "./types";
+import { LoginScreen } from "@/features/auth/screens/LoginScreen";
+
+const Stack = createNativeStackNavigator<AuthStackParamList>();
+
+export function AuthStack() {
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
+      }}
+    >
+      <Stack.Screen name="Login" component={LoginScreen} />
+    </Stack.Navigator>
+  );
+}
