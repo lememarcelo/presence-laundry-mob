@@ -1,6 +1,6 @@
 /**
- * LojaPicker - Modal de seleção de lojas
- * Permite selecionar uma ou múltiplas lojas com busca
+ * LojaPicker - Modal de seleção de lojas (redesigned)
+ * Design moderno com lista ampla e visual clean
  */
 
 import React, { useState, useCallback, useMemo, useEffect } from "react";
@@ -13,8 +13,10 @@ import {
   FlatList,
   TextInput,
   Dimensions,
+  StatusBar,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@/shared/theme/ThemeProvider";
 import { Loja } from "../api/dashboard.service";
 
@@ -36,6 +38,7 @@ export function LojaPicker({
   onApply,
 }: LojaPickerProps) {
   const { colors, tokens } = useTheme();
+  const insets = useSafeAreaInsets();
   const [searchText, setSearchText] = useState("");
   const [tempSelecionadas, setTempSelecionadas] = useState<string[]>([]);
 
@@ -100,114 +103,171 @@ export function LojaPicker({
     return `${tempSelecionadas.length} de ${lojas.length} selecionada(s)`;
   }, [tempSelecionadas.length, lojas.length]);
 
+  const allSelected =
+    tempSelecionadas.length === lojas.length && lojas.length > 0;
+  const noneSelected = tempSelecionadas.length === 0;
+
   const renderLojaItem = useCallback(
-    ({ item }: { item: Loja }) => {
+    ({ item, index }: { item: Loja; index: number }) => {
       const selected = isSelected(item.codigo);
       return (
         <TouchableOpacity
           style={[
             styles.lojaItem,
             {
-              backgroundColor: selected ? colors.accent + "15" : "transparent",
-              borderBottomColor: colors.cardBorder,
+              backgroundColor: selected ? colors.accent + "12" : colors.surface,
             },
+            index === 0 && styles.firstItem,
           ]}
           onPress={() => handleToggleLoja(item.codigo)}
-          activeOpacity={0.7}
+          activeOpacity={0.6}
+          accessibilityRole="checkbox"
+          accessibilityState={{ checked: selected }}
+          accessibilityLabel={`Loja ${item.nome}`}
         >
-          <View style={styles.lojaInfo}>
-            <View
+          {/* Checkbox visual */}
+          <View
+            style={[
+              styles.checkbox,
+              {
+                backgroundColor: selected ? colors.accent : "transparent",
+                borderColor: selected ? colors.accent : colors.cardBorder,
+              },
+            ]}
+          >
+            {selected && (
+              <MaterialCommunityIcons name="check" size={14} color="#FFF" />
+            )}
+          </View>
+
+          {/* Badge de código */}
+          <View
+            style={[
+              styles.codigoBadge,
+              {
+                backgroundColor: selected
+                  ? colors.accent + "25"
+                  : colors.background,
+              },
+            ]}
+          >
+            <Text
               style={[
-                styles.lojaCodigoContainer,
-                {
-                  backgroundColor: selected ? colors.accent : colors.cardBorder,
-                },
+                styles.codigoText,
+                { color: selected ? colors.accent : colors.mutedText },
               ]}
             >
-              <Text
-                style={[
-                  styles.lojaCodigo,
-                  { color: selected ? "#FFF" : colors.mutedText },
-                ]}
-              >
-                {item.codigo}
-              </Text>
-            </View>
-            <View style={styles.lojaTextContainer}>
-              <Text
-                style={[styles.lojaNome, { color: colors.textPrimary }]}
-                numberOfLines={1}
-              >
-                {item.nome}
-              </Text>
-              {item.uf && (
-                <Text style={[styles.lojaUf, { color: colors.mutedText }]}>
-                  {item.uf}
-                </Text>
-              )}
-            </View>
+              {item.codigo}
+            </Text>
           </View>
-          <MaterialCommunityIcons
-            name={
-              selected
-                ? "checkbox-marked-circle"
-                : "checkbox-blank-circle-outline"
-            }
-            size={24}
-            color={selected ? colors.accent : colors.mutedText}
-          />
+
+          {/* Nome e UF */}
+          <View style={styles.lojaTextContainer}>
+            <Text
+              style={[
+                styles.lojaNome,
+                {
+                  color: colors.textPrimary,
+                  fontWeight: selected ? "600" : "400",
+                },
+              ]}
+              numberOfLines={1}
+            >
+              {item.nome}
+            </Text>
+            {item.uf && (
+              <Text style={[styles.lojaUf, { color: colors.mutedText }]}>
+                {item.uf}
+              </Text>
+            )}
+          </View>
         </TouchableOpacity>
       );
     },
     [colors, isSelected, handleToggleLoja]
   );
 
+  const ListHeaderComponent = useMemo(
+    () => (
+      <View style={styles.listHeader}>
+        <Text style={[styles.listHeaderText, { color: colors.mutedText }]}>
+          {filteredLojas.length}{" "}
+          {filteredLojas.length === 1 ? "loja encontrada" : "lojas encontradas"}
+        </Text>
+      </View>
+    ),
+    [filteredLojas.length, colors.mutedText]
+  );
+
   return (
     <Modal
       visible={visible}
       animationType="slide"
-      transparent
+      transparent={false}
       onRequestClose={onClose}
+      statusBarTranslucent
     >
-      <View style={styles.modalOverlay}>
-        <View
-          style={[styles.modalContent, { backgroundColor: colors.surface }]}
-        >
-          {/* Header */}
-          <View
-            style={[
-              styles.modalHeader,
-              { borderBottomColor: colors.cardBorder },
-            ]}
+      <View
+        style={[
+          styles.container,
+          {
+            backgroundColor: colors.background,
+            paddingTop: insets.top,
+          },
+        ]}
+      >
+        <StatusBar
+          barStyle={tokens.mode === "dark" ? "light-content" : "dark-content"}
+        />
+
+        {/* Header */}
+        <View style={[styles.header, { backgroundColor: colors.surface }]}>
+          <TouchableOpacity
+            onPress={onClose}
+            style={styles.backButton}
+            accessibilityRole="button"
+            accessibilityLabel="Voltar"
           >
-            <View>
-              <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>
-                Selecionar Lojas
-              </Text>
-              <Text style={[styles.modalSubtitle, { color: colors.mutedText }]}>
-                {selectionCount}
-              </Text>
-            </View>
-            <TouchableOpacity
-              onPress={onClose}
-              style={[
-                styles.closeButton,
-                { backgroundColor: colors.cardBorder },
-              ]}
-            >
-              <MaterialCommunityIcons
-                name="close"
-                size={20}
-                color={colors.textPrimary}
-              />
-            </TouchableOpacity>
+            <MaterialCommunityIcons
+              name="arrow-left"
+              size={24}
+              color={colors.textPrimary}
+            />
+          </TouchableOpacity>
+
+          <View style={styles.headerTitleContainer}>
+            <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>
+              Selecionar Lojas
+            </Text>
+            <Text style={[styles.headerSubtitle, { color: colors.mutedText }]}>
+              {selectionCount}
+            </Text>
           </View>
 
-          {/* Busca */}
+          <TouchableOpacity
+            onPress={handleAplicar}
+            style={[
+              styles.applyHeaderButton,
+              { backgroundColor: colors.accent },
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel="Aplicar seleção"
+          >
+            <Text style={styles.applyHeaderButtonText}>OK</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Search Bar */}
+        <View
+          style={[styles.searchSection, { backgroundColor: colors.surface }]}
+        >
           <View
             style={[
               styles.searchContainer,
-              { backgroundColor: colors.background },
+              {
+                backgroundColor: colors.background,
+                borderColor: colors.cardBorder,
+              },
             ]}
           >
             <MaterialCommunityIcons
@@ -223,9 +283,13 @@ export function LojaPicker({
               onChangeText={setSearchText}
               autoCapitalize="none"
               autoCorrect={false}
+              returnKeyType="search"
             />
             {searchText.length > 0 && (
-              <TouchableOpacity onPress={() => setSearchText("")}>
+              <TouchableOpacity
+                onPress={() => setSearchText("")}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
                 <MaterialCommunityIcons
                   name="close-circle"
                   size={18}
@@ -234,134 +298,139 @@ export function LojaPicker({
               </TouchableOpacity>
             )}
           </View>
+        </View>
 
-          {/* Ações rápidas */}
-          <View
+        {/* Quick Actions */}
+        <View
+          style={[styles.quickActions, { backgroundColor: colors.surface }]}
+        >
+          <TouchableOpacity
             style={[
-              styles.quickActions,
-              { borderBottomColor: colors.cardBorder },
+              styles.quickButton,
+              {
+                backgroundColor: allSelected
+                  ? colors.accent
+                  : colors.background,
+                borderColor: allSelected ? colors.accent : colors.cardBorder,
+              },
             ]}
+            onPress={handleSelectAll}
+            activeOpacity={0.7}
           >
-            <TouchableOpacity
+            <MaterialCommunityIcons
+              name="checkbox-multiple-marked"
+              size={18}
+              color={allSelected ? "#FFF" : colors.accent}
+            />
+            <Text
               style={[
-                styles.quickActionButton,
-                {
-                  backgroundColor:
-                    tempSelecionadas.length === lojas.length && lojas.length > 0
-                      ? colors.accent
-                      : "transparent",
-                  borderColor: colors.accent,
-                },
+                styles.quickButtonText,
+                { color: allSelected ? "#FFF" : colors.accent },
               ]}
-              onPress={handleSelectAll}
             >
-              <MaterialCommunityIcons
-                name="checkbox-multiple-marked"
-                size={16}
-                color={
-                  tempSelecionadas.length === lojas.length && lojas.length > 0
-                    ? "#FFF"
-                    : colors.accent
-                }
-              />
-              <Text
-                style={[
-                  styles.quickActionText,
-                  {
-                    color:
-                      tempSelecionadas.length === lojas.length &&
-                      lojas.length > 0
-                        ? "#FFF"
-                        : colors.accent,
-                  },
-                ]}
-              >
-                Selecionar Todas
-              </Text>
-            </TouchableOpacity>
+              Selecionar Todas
+            </Text>
+          </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[
-                styles.quickActionButton,
-                {
-                  backgroundColor:
-                    tempSelecionadas.length === 0
-                      ? colors.danger
-                      : "transparent",
-                  borderColor: colors.danger,
-                },
-              ]}
-              onPress={handleClearAll}
-            >
-              <MaterialCommunityIcons
-                name="checkbox-multiple-blank-outline"
-                size={16}
-                color={tempSelecionadas.length === 0 ? "#FFF" : colors.danger}
-              />
-              <Text
-                style={[
-                  styles.quickActionText,
-                  {
-                    color:
-                      tempSelecionadas.length === 0 ? "#FFF" : colors.danger,
-                  },
-                ]}
-              >
-                Limpar
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Lista de lojas */}
-          <FlatList
-            data={filteredLojas}
-            keyExtractor={(item) => item.codigo}
-            renderItem={renderLojaItem}
-            style={styles.lojasList}
-            contentContainerStyle={{ paddingBottom: 16 }}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-            ListEmptyComponent={
-              <View style={styles.emptyContainer}>
-                <MaterialCommunityIcons
-                  name={lojas.length === 0 ? "loading" : "store-off"}
-                  size={48}
-                  color={colors.mutedText}
-                />
-                <Text style={[styles.emptyText, { color: colors.mutedText }]}>
-                  {lojas.length === 0
-                    ? "Carregando lojas..."
-                    : "Nenhuma loja encontrada"}
-                </Text>
-              </View>
-            }
-          />
-
-          {/* Footer */}
-          <View
-            style={[styles.modalFooter, { borderTopColor: colors.cardBorder }]}
+          <TouchableOpacity
+            style={[
+              styles.quickButton,
+              {
+                backgroundColor: noneSelected
+                  ? colors.danger
+                  : colors.background,
+                borderColor: noneSelected ? colors.danger : colors.cardBorder,
+              },
+            ]}
+            onPress={handleClearAll}
+            activeOpacity={0.7}
           >
-            <TouchableOpacity
-              style={[styles.cancelButton, { borderColor: colors.cardBorder }]}
-              onPress={onClose}
+            <MaterialCommunityIcons
+              name="close-circle-outline"
+              size={18}
+              color={noneSelected ? "#FFF" : colors.danger}
+            />
+            <Text
+              style={[
+                styles.quickButtonText,
+                { color: noneSelected ? "#FFF" : colors.danger },
+              ]}
             >
-              <Text
-                style={[
-                  styles.cancelButtonText,
-                  { color: colors.textSecondary },
-                ]}
-              >
-                Cancelar
+              Limpar
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Lista de Lojas - Ocupa todo espaço restante */}
+        <FlatList
+          data={filteredLojas}
+          keyExtractor={(item) => item.codigo}
+          renderItem={renderLojaItem}
+          style={styles.list}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={true}
+          keyboardShouldPersistTaps="handled"
+          ListHeaderComponent={ListHeaderComponent}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <MaterialCommunityIcons
+                name={lojas.length === 0 ? "store-clock" : "store-search"}
+                size={64}
+                color={colors.mutedText}
+              />
+              <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>
+                {lojas.length === 0
+                  ? "Carregando lojas..."
+                  : "Nenhuma loja encontrada"}
               </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.applyButton, { backgroundColor: colors.accent }]}
-              onPress={handleAplicar}
+              <Text style={[styles.emptyText, { color: colors.mutedText }]}>
+                {lojas.length === 0
+                  ? "Aguarde enquanto buscamos as lojas"
+                  : "Tente buscar com outros termos"}
+              </Text>
+            </View>
+          }
+          initialNumToRender={15}
+          maxToRenderPerBatch={10}
+          windowSize={10}
+        />
+
+        {/* Footer Fixo */}
+        <View
+          style={[
+            styles.footer,
+            {
+              backgroundColor: colors.surface,
+              borderTopColor: colors.cardBorder,
+              paddingBottom: Math.max(insets.bottom, 16),
+            },
+          ]}
+        >
+          <TouchableOpacity
+            style={[styles.cancelButton, { borderColor: colors.cardBorder }]}
+            onPress={onClose}
+            activeOpacity={0.7}
+          >
+            <Text
+              style={[styles.cancelButtonText, { color: colors.textSecondary }]}
             >
-              <MaterialCommunityIcons name="check" size={18} color="#FFF" />
-              <Text style={styles.applyButtonText}>Aplicar</Text>
-            </TouchableOpacity>
-          </View>
+              Cancelar
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.applyButton, { backgroundColor: colors.accent }]}
+            onPress={handleAplicar}
+            activeOpacity={0.8}
+          >
+            <MaterialCommunityIcons name="check" size={20} color="#FFF" />
+            <Text style={styles.applyButtonText}>
+              Aplicar{" "}
+              {tempSelecionadas.length > 0
+                ? `(${tempSelecionadas.length})`
+                : ""}
+            </Text>
+          </TouchableOpacity>
         </View>
       </View>
     </Modal>
@@ -369,47 +438,57 @@ export function LojaPicker({
 }
 
 const styles = StyleSheet.create({
-  modalOverlay: {
+  container: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "flex-end",
   },
-  modalContent: {
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    maxHeight: SCREEN_HEIGHT * 0.85,
-    minHeight: SCREEN_HEIGHT * 0.5,
-  },
-  modalHeader: {
+  header: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    padding: 20,
-    borderBottomWidth: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 12,
+    gap: 8,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
   },
-  modalTitle: {
-    fontSize: 20,
+  backButton: {
+    padding: 8,
+    borderRadius: 20,
+  },
+  headerTitleContainer: {
+    flex: 1,
+  },
+  headerTitle: {
+    fontSize: 18,
     fontWeight: "700",
   },
-  modalSubtitle: {
-    fontSize: 13,
-    marginTop: 2,
+  headerSubtitle: {
+    fontSize: 12,
+    marginTop: 1,
   },
-  closeButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
+  applyHeaderButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  applyHeaderButtonText: {
+    color: "#FFF",
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  searchSection: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginHorizontal: 16,
-    marginTop: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
     borderRadius: 12,
+    borderWidth: 1,
     gap: 10,
   },
   searchInput: {
@@ -419,51 +498,69 @@ const styles = StyleSheet.create({
   },
   quickActions: {
     flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
     paddingHorizontal: 16,
-    paddingVertical: 14,
-    gap: 12,
-    borderBottomWidth: 1,
+    paddingVertical: 12,
+    gap: 10,
   },
-  quickActionButton: {
+  quickButton: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 16,
+    justifyContent: "center",
     paddingVertical: 10,
-    borderRadius: 20,
+    paddingHorizontal: 12,
+    borderRadius: 10,
     borderWidth: 1.5,
     gap: 6,
   },
-  quickActionText: {
+  quickButtonText: {
     fontSize: 13,
     fontWeight: "600",
   },
-  lojasList: {
+  list: {
     flex: 1,
+  },
+  listContent: {
+    paddingHorizontal: 16,
+  },
+  listHeader: {
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+  },
+  listHeaderText: {
+    fontSize: 12,
+    fontWeight: "500",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
   lojaItem: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
     paddingVertical: 14,
-    borderBottomWidth: 1,
-  },
-  lojaInfo: {
-    flexDirection: "row",
-    alignItems: "center",
+    paddingHorizontal: 12,
+    marginBottom: 8,
+    borderRadius: 12,
     gap: 12,
-    flex: 1,
   },
-  lojaCodigoContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  firstItem: {
+    marginTop: 4,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 2,
     alignItems: "center",
     justifyContent: "center",
   },
-  lojaCodigo: {
+  codigoBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    minWidth: 44,
+    alignItems: "center",
+  },
+  codigoText: {
     fontSize: 12,
     fontWeight: "700",
   },
@@ -472,24 +569,29 @@ const styles = StyleSheet.create({
   },
   lojaNome: {
     fontSize: 15,
-    fontWeight: "500",
   },
   lojaUf: {
     fontSize: 12,
     marginTop: 2,
   },
   emptyContainer: {
-    padding: 48,
+    paddingVertical: 60,
     alignItems: "center",
     gap: 12,
+  },
+  emptyTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginTop: 8,
   },
   emptyText: {
     fontSize: 14,
     textAlign: "center",
   },
-  modalFooter: {
+  footer: {
     flexDirection: "row",
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingTop: 12,
     borderTopWidth: 1,
     gap: 12,
   },
@@ -498,7 +600,8 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: "center",
-    borderWidth: 1,
+    justifyContent: "center",
+    borderWidth: 1.5,
   },
   cancelButtonText: {
     fontSize: 15,
@@ -516,6 +619,6 @@ const styles = StyleSheet.create({
   applyButtonText: {
     color: "#FFF",
     fontSize: 15,
-    fontWeight: "600",
+    fontWeight: "700",
   },
 });

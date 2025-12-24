@@ -37,26 +37,40 @@ interface RankingItemWithCode extends RankingItem {
 function transformRankingFromAPI(
   data: DadosRankingLojas
 ): RankingItemWithCode[] {
-  return data.lojas.map((loja, index) => ({
-    id: `loja-${loja.codigo}`,
-    codigo: loja.codigo,
-    position: loja.posicao,
-    name: loja.nome,
-    value: loja.faturamento,
-    formattedValue: `R$ ${loja.faturamento.toLocaleString("pt-BR", {
-      minimumFractionDigits: 2,
-    })}`,
-    percentOfTotal: loja.percentual,
-    trend: "stable" as const,
-    badge:
-      index === 0
-        ? "gold"
-        : index === 1
-        ? "silver"
-        : index === 2
-        ? "bronze"
-        : undefined,
-  }));
+  // Validação: se não tem lojas, retorna array vazio
+  if (!data?.lojas || !Array.isArray(data.lojas)) {
+    return [];
+  }
+
+  return data.lojas.map((loja, index) => {
+    // Garante valores seguros para evitar erros de undefined
+    const faturamento = loja?.faturamento ?? 0;
+    const posicao = loja?.posicao ?? index + 1;
+    const codigo = loja?.codigo ?? `${index}`;
+    const nome = loja?.nome ?? "Loja";
+    const percentual = loja?.percentual ?? 0;
+
+    return {
+      id: `loja-${codigo}`,
+      codigo: codigo,
+      position: posicao,
+      name: nome,
+      value: faturamento,
+      formattedValue: `R$ ${faturamento.toLocaleString("pt-BR", {
+        minimumFractionDigits: 2,
+      })}`,
+      percentOfTotal: percentual,
+      trend: "stable" as const,
+      badge:
+        index === 0
+          ? "gold"
+          : index === 1
+          ? "silver"
+          : index === 2
+          ? "bronze"
+          : undefined,
+    };
+  });
 }
 
 // Componente de item de ranking
@@ -191,31 +205,25 @@ export function RankingScreen() {
 
   const totalValue =
     activeRanking === "lojas" && rankingLojasAPI
-      ? rankingLojasAPI.totalFaturamento
-      : rankingData.reduce((sum, item) => sum + item.value, 0);
+      ? rankingLojasAPI.totalFaturamento ?? 0
+      : rankingData.reduce((sum, item) => sum + (item.value ?? 0), 0);
 
   // Loading state para lojas
   if (isLoading && activeRanking === "lojas") {
     return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={["bottom"]}
-      >
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.accent} />
           <Text style={[styles.loadingText, { color: colors.mutedText }]}>
             Carregando ranking...
           </Text>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      edges={["bottom"]}
-    >
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Filtros Globais */}
       <FilterBar />
 
@@ -381,10 +389,10 @@ export function RankingScreen() {
             </Text>
             <Text style={[styles.totalValue, { color: colors.textPrimary }]}>
               {activeRanking === "lojas"
-                ? `R$ ${totalValue.toLocaleString("pt-BR", {
+                ? `R$ ${(totalValue ?? 0).toLocaleString("pt-BR", {
                     minimumFractionDigits: 2,
                   })}`
-                : `${totalValue} atendimentos`}
+                : `${totalValue ?? 0} atendimentos`}
             </Text>
           </View>
         </View>
@@ -445,7 +453,7 @@ export function RankingScreen() {
           )}
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 

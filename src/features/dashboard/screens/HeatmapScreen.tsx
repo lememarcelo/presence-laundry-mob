@@ -192,25 +192,19 @@ export function HeatmapScreen() {
   // Loading state
   if (isLoading) {
     return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={["bottom"]}
-      >
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.accent} />
           <Text style={[styles.loadingText, { color: colors.mutedText }]}>
             Carregando mapa de calor...
           </Text>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      edges={["bottom"]}
-    >
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Filtros Globais */}
       <FilterBar />
 
@@ -678,7 +672,7 @@ export function HeatmapScreen() {
           </>
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 

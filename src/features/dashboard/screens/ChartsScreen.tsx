@@ -39,6 +39,8 @@ import {
 } from "../components/InteractiveLegend";
 
 const screenWidth = Dimensions.get("window").width;
+// Largura do gráfico = screenWidth - padding (32) - margins do card (16*2) - espaço do eixo Y (50)
+const chartWidth = screenWidth - 32 - 32 - 50;
 
 type ChartType =
   | "faturamento"
@@ -312,10 +314,7 @@ export function ChartsScreen() {
   const mediaFaturamento = totalFaturamento / mockFaturamentoDiario.data.length;
 
   return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      edges={["bottom"]}
-    >
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Filtros Globais */}
       <FilterBar />
 
@@ -388,7 +387,7 @@ export function ChartsScreen() {
               <View style={styles.chartWrapper}>
                 <LineChart
                   data={faturamentoLineData}
-                  width={screenWidth - 80}
+                  width={chartWidth}
                   height={200}
                   color="#007AFF"
                   thickness={3}
@@ -460,7 +459,7 @@ export function ChartsScreen() {
               <View style={styles.chartWrapper}>
                 <BarChart
                   data={faturamentoMensalData}
-                  width={screenWidth - 80}
+                  width={chartWidth}
                   height={200}
                   barWidth={20}
                   barBorderRadius={4}
@@ -537,7 +536,7 @@ export function ChartsScreen() {
             <View style={styles.chartWrapper}>
               <BarChart
                 data={pecasBarData}
-                width={screenWidth - 80}
+                width={chartWidth}
                 height={200}
                 barWidth={32}
                 barBorderRadius={6}
@@ -787,7 +786,7 @@ export function ChartsScreen() {
                 <View style={styles.chartWrapper}>
                   <BarChart
                     data={pendenciaChartData}
-                    width={screenWidth - 80}
+                    width={chartWidth}
                     height={220}
                     barWidth={40}
                     barBorderRadius={6}
@@ -899,7 +898,7 @@ export function ChartsScreen() {
 
         <View style={{ height: 24 }} />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -947,6 +946,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 8,
     elevation: 3,
+    overflow: "hidden",
   },
   chartTitle: {
     fontSize: 18,
@@ -960,6 +960,7 @@ const styles = StyleSheet.create({
   chartWrapper: {
     alignItems: "center",
     marginVertical: 8,
+    overflow: "hidden",
   },
   summaryRow: {
     flexDirection: "row",

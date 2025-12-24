@@ -321,14 +321,27 @@ export function PeriodPresetsInline({
             key={preset.key}
             style={[
               styles.inlineButton,
+              isActive && styles.inlineButtonActive,
               {
-                backgroundColor: isActive ? colors.accent : "transparent",
+                backgroundColor: isActive ? colors.accent : colors.background,
                 borderColor: isActive ? colors.accent : colors.cardBorder,
+                ...(isActive && {
+                  shadowColor: colors.accent,
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.3,
+                  shadowRadius: 4,
+                  elevation: 4,
+                }),
               },
             ]}
             onPress={() => handlePresetPress(preset)}
             activeOpacity={0.7}
           >
+            <MaterialCommunityIcons
+              name={preset.icon as any}
+              size={16}
+              color={isActive ? "#FFF" : colors.mutedText}
+            />
             <Text
               style={[
                 styles.inlineButtonText,
@@ -346,18 +359,26 @@ export function PeriodPresetsInline({
         style={[
           styles.inlineButton,
           styles.customButton,
+          isCustomActive && styles.inlineButtonActive,
           {
-            backgroundColor: isCustomActive ? colors.accent : "transparent",
+            backgroundColor: isCustomActive ? colors.accent : colors.background,
             borderColor: isCustomActive ? colors.accent : colors.cardBorder,
+            ...(isCustomActive && {
+              shadowColor: colors.accent,
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.3,
+              shadowRadius: 4,
+              elevation: 4,
+            }),
           },
         ]}
         onPress={onCustomPress}
         activeOpacity={0.7}
       >
         <MaterialCommunityIcons
-          name="calendar-range"
-          size={14}
-          color={isCustomActive ? "#FFF" : colors.textSecondary}
+          name="calendar-edit"
+          size={16}
+          color={isCustomActive ? "#FFF" : colors.mutedText}
         />
         <Text
           style={[
@@ -366,7 +387,7 @@ export function PeriodPresetsInline({
           ]}
           numberOfLines={1}
         >
-          {isCustomActive ? customPeriodLabel : "..."}
+          {isCustomActive ? customPeriodLabel : "Outro"}
         </Text>
       </TouchableOpacity>
     </View>
@@ -406,24 +427,27 @@ const styles = StyleSheet.create({
   // Inline styles
   inlineContainer: {
     flexDirection: "row",
-    gap: 6,
+    gap: 8,
   },
   inlineButton: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
     paddingVertical: 10,
-    borderRadius: 16,
-    borderWidth: 1,
-    gap: 4,
-    minHeight: 44, // Touch target mínimo de 44pt
+    borderRadius: 12,
+    borderWidth: 1.5,
+    gap: 6,
+    minHeight: 44,
+  },
+  inlineButtonActive: {
+    borderWidth: 0,
   },
   inlineButtonText: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: "600",
   },
   customButton: {
-    minWidth: 80,
-    maxWidth: 130,
+    flex: 1,
+    justifyContent: "center",
   },
 });

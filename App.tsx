@@ -1,9 +1,10 @@
 /**
  * App.tsx - Ponto de entrada principal do Presence Laundry Mobile
  * Integra ThemeProvider, QueryClientProvider e RootNavigator
+ * M7-A-001: Configuração do callback de logout para erro 401
  */
 
-import React from "react";
+import React, { useEffect } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -11,6 +12,8 @@ import { useFonts } from "expo-font";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { ThemeProvider } from "./src/shared/theme/ThemeProvider";
 import { RootNavigator } from "./src/navigation/RootNavigator";
+import { setOnUnauthorizedCallback } from "./src/shared/api/axiosClient";
+import { useSessionStore } from "./src/features/auth/stores/useSessionStore";
 
 // Configuração do QueryClient para TanStack Query
 // gcTime alto para manter dados em cache quando offline
@@ -29,6 +32,23 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+// Componente interno que configura o callback de 401
+function AppWithAuth() {
+  const logout = useSessionStore((state) => state.logout);
+
+  // M7-A-001: Registra callback para logout em erro 401
+  useEffect(() => {
+    setOnUnauthorizedCallback(() => {
+      console.warn("[App] Erro 401 detectado - realizando logout automático");
+      logout();
+      // Limpa cache do React Query para evitar dados stale
+      queryClient.clear();
+    });
+  }, [logout]);
+
+  return <RootNavigator />;
+}
 
 export default function App() {
   // Carregar fontes dos ícones
@@ -49,7 +69,7 @@ export default function App() {
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>
         <ThemeProvider>
-          <RootNavigator />
+          <AppWithAuth />
         </ThemeProvider>
       </QueryClientProvider>
     </SafeAreaProvider>

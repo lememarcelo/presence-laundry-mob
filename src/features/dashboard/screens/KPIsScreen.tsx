@@ -3,7 +3,7 @@
  * Exibe cards com métricas de faturamento, tickets, peças, clientes, etc.
  */
 
-import React from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
   ScrollView,
   RefreshControl,
   ActivityIndicator,
+  TouchableOpacity,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -34,6 +35,7 @@ import {
   SparklineChart,
   generateMockSparklineData,
 } from "../components/SparklineChart";
+import { KPIDetailModal, KPIDetailData } from "../components/KPIDetailModal";
 import { mockKPIs } from "../data/mock-data";
 import { KPICard as KPICardType } from "@/models/dashboard.models";
 import { DashboardKPIs } from "../api/dashboard.service";
@@ -66,6 +68,145 @@ function isValidDashboardKPIs(data: unknown): data is DashboardKPIs {
     d.clientes !== undefined &&
     d.ranking !== undefined
   );
+}
+
+// M2-K-003: Helpers para dados do modal de detalhes
+const KPI_DESCRIPTIONS: Record<string, string> = {
+  faturamento:
+    "Total de receita no período selecionado. Inclui todos os tipos de serviço e formas de pagamento.",
+  tickets:
+    "Número de atendimentos/ROLs processados no período. Cada ticket representa uma entrada de cliente.",
+  "ticket-medio":
+    "Valor médio por atendimento, calculado dividindo o faturamento pelo número de tickets.",
+  pecas:
+    "Total de peças/itens processados no período. Indica o volume de produção da lavanderia.",
+  delivery:
+    "Percentual de atendimentos realizados via delivery sobre o total de atendimentos.",
+  ranking:
+    "Posição da loja no ranking comparativo de todas as unidades da rede.",
+};
+
+function getKPIDescription(kpiId: string): string {
+  return KPI_DESCRIPTIONS[kpiId] || "Indicador de performance do período.";
+}
+
+function getKPIBreakdown(
+  kpi: KPICardType,
+  metricas: DashboardKPIs | undefined
+): { label: string; value: string; icon?: string; subValue?: string }[] {
+  if (!metricas) return [];
+
+  // Cast para acessar campos opcionais que podem não estar no tipo
+  const m = metricas as any;
+
+  switch (kpi.id) {
+    case "faturamento":
+      if (!m.formasPagamento) return [];
+      return [
+        {
+          label: "Dinheiro",
+          value: formatCurrency(m.formasPagamento?.dinheiro ?? 0),
+          icon: "cash",
+        },
+        {
+          label: "Cartão Crédito",
+          value: formatCurrency(m.formasPagamento?.credito ?? 0),
+          icon: "credit-card",
+        },
+        {
+          label: "Cartão Débito",
+          value: formatCurrency(m.formasPagamento?.debito ?? 0),
+          icon: "credit-card-outline",
+        },
+        {
+          label: "PIX",
+          value: formatCurrency(m.formasPagamento?.pix ?? 0),
+          icon: "qrcode",
+        },
+      ];
+    case "tickets":
+      return [
+        {
+          label: "Média por Dia",
+          value: formatNumber(
+            Math.round(
+              (metricas.tickets?.atual ?? 0) /
+                (metricas.projecao?.diasUteisPassados || 1)
+            )
+          ),
+          icon: "calendar-today",
+        },
+        {
+          label: "Novos Clientes",
+          value: formatNumber(metricas.clientes?.novos ?? 0),
+          icon: "account-plus",
+          subValue: `${(
+            ((metricas.clientes?.novos ?? 0) / (metricas.tickets?.atual || 1)) *
+            100
+          ).toFixed(1)}% do total`,
+        },
+      ];
+    case "pecas":
+      return [
+        {
+          label: "Média por Ticket",
+          value: formatNumber(
+            Math.round(
+              (metricas.pecas?.atual ?? 0) / (metricas.tickets?.atual || 1)
+            )
+          ),
+          icon: "tshirt-crew",
+        },
+      ];
+    default:
+      return [];
+  }
+}
+
+function getKPIMeta(
+  kpiId: string,
+  metricas: DashboardKPIs | undefined
+): string | undefined {
+  // Cast para acessar campos opcionais
+  const m = metricas as any;
+  if (!m?.metas) return undefined;
+
+  switch (kpiId) {
+    case "faturamento":
+      return m.metas.faturamento
+        ? formatCurrency(m.metas.faturamento)
+        : undefined;
+    case "tickets":
+      return m.metas.tickets ? formatNumber(m.metas.tickets) : undefined;
+    default:
+      return undefined;
+  }
+}
+
+function getKPIMetaAtingida(
+  kpi: KPICardType,
+  metricas: DashboardKPIs | undefined
+): number | undefined {
+  // Cast para acessar campos opcionais
+  const m = metricas as any;
+  if (!m?.metas) return undefined;
+
+  const valor = typeof kpi.value === "number" ? kpi.value : 0;
+  let meta: number | undefined;
+
+  switch (kpi.id) {
+    case "faturamento":
+      meta = m.metas.faturamento;
+      break;
+    case "tickets":
+      meta = m.metas.tickets;
+      break;
+    default:
+      return undefined;
+  }
+
+  if (!meta || meta === 0) return undefined;
+  return (valor / meta) * 100;
 }
 
 function transformKPIsFromAPI(data: DashboardKPIs): KPICardType[] {
@@ -168,9 +309,11 @@ function transformKPIsFromAPI(data: DashboardKPIs): KPICardType[] {
 function KPICardComponent({
   data,
   sparklineData,
+  onPress,
 }: {
   data: KPICardType;
   sparklineData?: number[];
+  onPress?: () => void;
 }) {
   const { colors, tokens } = useTheme();
 
@@ -192,7 +335,7 @@ function KPICardComponent({
   const semaforoStatus = getSemaforoStatus(data.percentChange ?? 0);
 
   return (
-    <View
+    <TouchableOpacity
       style={[
         styles.kpiCard,
         {
@@ -200,6 +343,11 @@ function KPICardComponent({
           borderColor: colors.cardBorder,
         },
       ]}
+      onPress={onPress}
+      activeOpacity={0.7}
+      accessibilityRole="button"
+      accessibilityLabel={`${data.title}: ${data.formattedValue}. Toque para ver detalhes.`}
+      accessibilityHint="Abre modal com detalhes do indicador"
     >
       <View style={styles.kpiHeader}>
         <View style={styles.kpiHeaderLeft}>
@@ -265,7 +413,7 @@ function KPICardComponent({
       >
         {data.title}
       </Text>
-    </View>
+    </TouchableOpacity>
   );
 }
 
@@ -273,6 +421,10 @@ export function KPIsScreen() {
   const { colors, tokens } = useTheme();
   const { dataInicio, dataFim, lojasSelecionadas } = useFiltersStore();
   const { invalidateAll } = useInvalidateDashboard();
+
+  // M2-K-003: State para modal de detalhes do KPI
+  const [selectedKPI, setSelectedKPI] = useState<KPIDetailData | null>(null);
+  const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
 
   // Query para métricas consolidadas
   const {
@@ -399,6 +551,26 @@ export function KPIsScreen() {
     return map;
   }, [kpis]);
 
+  // M2-K-003: Handler para abrir modal de detalhes do KPI
+  const handleKPIPress = React.useCallback(
+    (kpi: KPICardType) => {
+      // Monta dados estendidos para o modal
+      const detailData: KPIDetailData = {
+        ...kpi,
+        periodo: `${dataInicio.toLocaleDateString(
+          "pt-BR"
+        )} - ${dataFim.toLocaleDateString("pt-BR")}`,
+        description: getKPIDescription(kpi.id),
+        breakdown: getKPIBreakdown(kpi, metricas),
+        meta: getKPIMeta(kpi.id, metricas),
+        metaAtingida: getKPIMetaAtingida(kpi, metricas),
+      };
+      setSelectedKPI(detailData);
+      setIsDetailModalVisible(true);
+    },
+    [dataInicio, dataFim, metricas]
+  );
+
   const onRefresh = React.useCallback(async () => {
     await invalidateAll();
     refetch();
@@ -415,10 +587,7 @@ export function KPIsScreen() {
   // Loading state - mostra skeleton cards
   if (isLoading) {
     return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={["bottom"]}
-      >
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         <FilterBar />
         <ScrollView
           style={styles.scrollView}
@@ -429,17 +598,14 @@ export function KPIsScreen() {
           </Text>
           <KPISkeletonGrid count={6} />
         </ScrollView>
-      </SafeAreaView>
+      </View>
     );
   }
 
   // Error state
   if (isError && !metricas) {
     return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={["bottom"]}
-      >
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         <ScrollView
           contentContainerStyle={styles.errorContainer}
           refreshControl={
@@ -465,15 +631,12 @@ export function KPIsScreen() {
             Puxe para baixo para tentar novamente
           </Text>
         </ScrollView>
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      edges={["bottom"]}
-    >
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Barra de Filtros */}
       <FilterBar />
 
@@ -495,6 +658,7 @@ export function KPIsScreen() {
               key={kpi.id}
               data={kpi}
               sparklineData={sparklineDataMap[kpi.id]}
+              onPress={() => handleKPIPress(kpi)}
             />
           ))}
         </View>
@@ -573,7 +737,17 @@ export function KPIsScreen() {
           </View>
         </View>
       </ScrollView>
-    </SafeAreaView>
+
+      {/* M2-K-003: Modal de detalhes do KPI */}
+      <KPIDetailModal
+        visible={isDetailModalVisible}
+        onClose={() => {
+          setIsDetailModalVisible(false);
+          setSelectedKPI(null);
+        }}
+        data={selectedKPI}
+      />
+    </View>
   );
 }
 

@@ -28,9 +28,9 @@
 | M1-G-005 | Integrar componentes no FilterBar                | ✅     | AI          | `FilterBarNew.tsx` integra todos componentes |
 | M1-G-006 | Persistir filtros com AsyncStorage               | ✅     | AI          | Via zustand/middleware persist               |
 | M1-G-007 | Substituir FilterBar antigo pelo novo            | ✅     | AI          | FilterBarNew integrado em todas screens      |
-| M1-G-008 | Testar comportamento de filtros entre telas      | 🔲     | -           | Validar state global                         |
+| M1-G-008 | Testar comportamento de filtros entre telas      | ✅     | AI          | Filtros globais Zustand - validado           |
 
-**Progresso M1-G:** 7/8 (87%)
+**Progresso M1-G:** 8/8 (100%)
 
 ---
 
@@ -40,12 +40,12 @@
 | -------- | ----------------------------------------- | ------ | ----------- | -------------------------------------- |
 | M2-K-001 | Implementar semáforos nos cards de KPI    | ✅     | AI          | `SemaforoIndicator.tsx` com pulse anim |
 | M2-K-002 | Criar componente SkeletonCard             | ✅     | AI          | `SkeletonCard.tsx` com variantes       |
-| M2-K-003 | Adicionar tooltip/detail ao tocar em card | 🔲     | -           | Modal com breakdown do cálculo         |
+| M2-K-003 | Adicionar tooltip/detail ao tocar em card | ✅     | AI          | KPIDetailModal + TouchableOpacity      |
 | M2-K-004 | Implementar card Comparativo Loja x Rede  | ✅     | AI          | ComparativoLojaRedeCard.tsx            |
 | M2-K-005 | Melhorar layout responsivo dos cards      | 🔲     | -           | Grid adaptativo para tablets           |
 | M2-K-006 | Adicionar mini-gráfico inline nos cards   | ✅     | AI          | SparklineChart.tsx com SVG             |
 
-**Progresso M2-K:** 4/6 (67%)
+**Progresso M2-K:** 5/6 (83%)
 
 ---
 
@@ -106,13 +106,13 @@
 
 ## Milestone 7: Autenticação (M7-A)
 
-| ID       | Tarefa                                        | Status | Responsável | Notas                       |
-| -------- | --------------------------------------------- | ------ | ----------- | --------------------------- |
-| M7-A-001 | Implementar tratamento de erro 401            | 🔲     | -           | Redirect para login         |
-| M7-A-002 | Adicionar refresh token (se backend suportar) | 🔲     | -           | Opcional                    |
-| M7-A-003 | Implementar logout com limpeza de cache       | 🔲     | -           | Limpar TanStack Query cache |
+| ID       | Tarefa                                        | Status | Responsável | Notas                         |
+| -------- | --------------------------------------------- | ------ | ----------- | ----------------------------- |
+| M7-A-001 | Implementar tratamento de erro 401            | ✅     | AI          | axiosClient + logout callback |
+| M7-A-002 | Adicionar refresh token (se backend suportar) | 🔲     | -           | Opcional                      |
+| M7-A-003 | Implementar logout com limpeza de cache       | 🔲     | -           | Limpar TanStack Query cache   |
 
-**Progresso M7-A:** 0/3 (0%)
+**Progresso M7-A:** 1/3 (33%)
 
 ---
 
@@ -120,14 +120,14 @@
 
 | Milestone           | Total  | Concluído | Progresso |
 | ------------------- | ------ | --------- | --------- |
-| M1: Filtros Globais | 8      | 7         | 87%       |
-| M2: KPIs            | 6      | 4         | 67%       |
+| M1: Filtros Globais | 8      | 8         | 100%      |
+| M2: KPIs            | 6      | 5         | 83%       |
 | M3: Gráficos        | 6      | 5         | 83%       |
 | M4: Heatmap/Mapas   | 4      | 3         | 75%       |
 | M5: Ranking         | 4      | 1         | 25%       |
 | M6: UX/UI           | 5      | 3         | 60%       |
-| M7: Autenticação    | 3      | 0         | 0%        |
-| **Total**           | **36** | **23**    | **64%**   |
+| M7: Autenticação    | 3      | 1         | 33%       |
+| **Total**           | **36** | **26**    | **72%**   |
 
 ---
 
@@ -196,3 +196,6 @@ src/features/dashboard/
 | 2025-12-24 | M3-C-005 concluído (InteractiveLegend com toggle)                    |
 | 2025-12-24 | M4-H-003 concluído (BrasilMapSVG integrado)                          |
 | 2025-12-24 | M6-U-003 concluído (useOfflineStatus + OfflineBanner)                |
+| 2025-12-24 | M1-G-008 concluído (filtros globais validados)                       |
+| 2025-12-24 | M2-K-003 concluído (KPIDetailModal com breakdown)                    |
+| 2025-12-24 | M7-A-001 concluído (erro 401 com logout automático)                  |

@@ -1,6 +1,7 @@
 /**
  * Axios Client - Configuração HTTP com Basic Auth
  * Cliente HTTP centralizado para comunicação com Presence Remote (DataSnap)
+ * M7-A-001: Tratamento de erro 401 com redirect para login
  */
 
 import axios, { type AxiosInstance, type AxiosError, type InternalAxiosRequestConfig } from 'axios';
@@ -8,6 +9,17 @@ import { getSessionCredentials } from '@features/auth/stores/session.store';
 
 // Instância singleton do axios
 let axiosInstance: AxiosInstance | null = null;
+
+// Callback para logout em caso de 401 (evita dependência circular)
+let onUnauthorizedCallback: (() => void) | null = null;
+
+/**
+ * Registra callback para ser chamado em erro 401
+ * Deve ser chamado no App.tsx com a função de logout do store
+ */
+export function setOnUnauthorizedCallback(callback: () => void): void {
+  onUnauthorizedCallback = callback;
+}
 
 /**
  * Cria/retorna a instância configurada do axios
@@ -76,8 +88,11 @@ export function getAxiosInstance(): AxiosInstance {
           switch (error.response.status) {
             case 401:
               // Não autorizado - credenciais inválidas
-              // O componente que chamou deve tratar o logout
-              console.warn('[API] Autenticação falhou (401)');
+              // M7-A-001: Chama callback de logout se registrado
+              console.warn('[API] Autenticação falhou (401) - realizando logout');
+              if (onUnauthorizedCallback) {
+                onUnauthorizedCallback();
+              }
               break;
             case 403:
               console.warn('[API] Acesso negado (403)');
