@@ -16,6 +16,7 @@ import {
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "@/shared/theme/ThemeProvider";
+import { useFiltersStore } from "../stores/useFiltersStore";
 import { mockRankingLojas, mockRankingFuncionarios } from "../data/mock-data";
 import { RankingItem } from "@/models/dashboard.models";
 import {
@@ -26,10 +27,18 @@ import { DadosRankingLojas } from "../api/dashboard.service";
 
 type RankingType = "lojas" | "funcionarios";
 
+// Tipo estendido para incluir código da loja
+interface RankingItemWithCode extends RankingItem {
+  codigo?: string;
+}
+
 // Transforma dados da API em RankingItem[]
-function transformRankingFromAPI(data: DadosRankingLojas): RankingItem[] {
+function transformRankingFromAPI(
+  data: DadosRankingLojas
+): RankingItemWithCode[] {
   return data.lojas.map((loja, index) => ({
     id: `loja-${loja.codigo}`,
+    codigo: loja.codigo,
     position: loja.posicao,
     name: loja.nome,
     value: loja.faturamento,
@@ -53,9 +62,11 @@ function transformRankingFromAPI(data: DadosRankingLojas): RankingItem[] {
 function RankingItemComponent({
   item,
   colors,
+  isUserStore = false,
 }: {
   item: RankingItem;
   colors: any;
+  isUserStore?: boolean;
 }) {
   const badgeColors: Record<string, { bg: string; text: string }> = {
     gold: { bg: "#FEF3C7", text: "#D97706" },
@@ -83,6 +94,12 @@ function RankingItemComponent({
         styles.rankingItem,
         { borderBottomColor: colors.cardBorder },
         item.position <= 3 && styles.topThreeItem,
+        isUserStore && styles.userStoreItem,
+        isUserStore && {
+          backgroundColor: colors.accent + "15",
+          borderLeftColor: colors.accent,
+          borderLeftWidth: 3,
+        },
       ]}
     >
       {/* Posição */}
@@ -140,6 +157,11 @@ export function RankingScreen() {
   const { colors, tokens } = useTheme();
   const [activeRanking, setActiveRanking] = useState<RankingType>("lojas");
   const { invalidateRanking } = useInvalidateDashboard();
+  const { lojasSelecionadas } = useFiltersStore();
+
+  // Código da loja do usuário (primeira loja selecionada ou padrão "01")
+  const userStoreCode =
+    lojasSelecionadas.length > 0 ? lojasSelecionadas[0] : "01";
 
   // Query para ranking de lojas
   const {
@@ -329,9 +351,22 @@ export function RankingScreen() {
             </Text>
           </View>
 
-          {rankingData.map((item) => (
-            <RankingItemComponent key={item.id} item={item} colors={colors} />
-          ))}
+          {rankingData.map((item) => {
+            // Verifica se é a loja do usuário (comparando código)
+            const itemWithCode = item as RankingItemWithCode;
+            const isUserStore =
+              activeRanking === "lojas" &&
+              itemWithCode.codigo === userStoreCode;
+
+            return (
+              <RankingItemComponent
+                key={item.id}
+                item={item}
+                colors={colors}
+                isUserStore={isUserStore}
+              />
+            );
+          })}
 
           {/* Total */}
           <View
@@ -498,6 +533,11 @@ const styles = StyleSheet.create({
   },
   topThreeItem: {
     paddingVertical: 14,
+  },
+  userStoreItem: {
+    marginHorizontal: -12,
+    paddingHorizontal: 12,
+    borderRadius: 8,
   },
   positionContainer: {
     width: 40,

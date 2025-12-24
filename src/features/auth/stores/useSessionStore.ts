@@ -35,8 +35,8 @@ export const useSessionStore = create<SessionState>((set) => ({
     isAuthenticated: true,
     isLoading: false,
     error: null,
-    // IMPORTANTE: Sempre usar este IP para desenvolvimento
-    baseUrl: 'http://192.168.0.136:8002/datasnap/rest',
+    // IMPORTANTE: Presence Dashboard API (Horse) - porta 8081
+    baseUrl: 'http://192.168.0.136:8081',
     username: 'presence',
     password: '1',
 

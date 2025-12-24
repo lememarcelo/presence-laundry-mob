@@ -20,7 +20,12 @@ import {
   useMetricasConsolidadas,
   useInvalidateDashboard,
 } from "../hooks/useDashboardQueries";
-import { FilterBar } from "../components/FilterBar";
+import { FilterBar } from "../components/FilterBarNew";
+import {
+  SemaforoIndicator,
+  getSemaforoStatus,
+} from "../components/SemaforoIndicator";
+import { KPISkeletonGrid } from "../components/SkeletonCard";
 import { mockKPIs } from "../data/mock-data";
 import { KPICard as KPICardType } from "@/models/dashboard.models";
 import { DashboardKPIs } from "../api/dashboard.service";
@@ -45,10 +50,11 @@ function formatNumber(value: number | undefined | null): string {
 function isValidDashboardKPIs(data: unknown): data is DashboardKPIs {
   if (!data || typeof data !== "object") return false;
   const d = data as any;
+  // Valida estrutura conforme backend Horse
   return (
-    d.faturamento?.atual?.valor !== undefined &&
-    d.tickets?.atual?.quantidade !== undefined &&
-    d.pecas?.atual?.quantidade !== undefined &&
+    d.faturamento?.atual !== undefined &&
+    d.tickets?.atual !== undefined &&
+    d.pecas?.atual !== undefined &&
     d.clientes !== undefined &&
     d.ranking !== undefined
   );
@@ -57,27 +63,30 @@ function isValidDashboardKPIs(data: unknown): data is DashboardKPIs {
 function transformKPIsFromAPI(data: DashboardKPIs): KPICardType[] {
   const kpis: KPICardType[] = [];
 
-  // Faturamento
+  // Faturamento (atual é valor direto, não objeto)
   kpis.push({
     id: "faturamento",
     title: "Faturamento",
-    value: data.faturamento?.atual?.valor ?? 0,
-    formattedValue: formatCurrency(data.faturamento?.atual?.valor ?? 0),
-    previousValue: data.faturamento?.anterior?.valor,
+    value: data.faturamento?.atual ?? 0,
+    formattedValue: formatCurrency(data.faturamento?.atual ?? 0),
+    previousValue: data.faturamento?.anterior,
     percentChange: data.faturamento?.variacao?.percentual ?? 0,
-    trend: data.faturamento?.variacao?.direcao ?? "stable",
+    trend:
+      (data.faturamento?.variacao?.direcao as "up" | "down" | "stable") ??
+      "stable",
     icon: "cash-multiple",
     color: "#10B981",
   });
 
-  // Tickets (Atendimentos/ROLs)
+  // Tickets (Atendimentos/ROLs) - atual é número direto
   kpis.push({
     id: "tickets",
     title: "Atendimentos",
-    value: data.tickets?.atual?.quantidade ?? 0,
-    formattedValue: formatNumber(data.tickets?.atual?.quantidade ?? 0),
+    value: data.tickets?.atual ?? 0,
+    formattedValue: formatNumber(data.tickets?.atual ?? 0),
     percentChange: data.tickets?.variacao?.percentual ?? 0,
-    trend: data.tickets?.variacao?.direcao ?? "stable",
+    trend:
+      (data.tickets?.variacao?.direcao as "up" | "down" | "stable") ?? "stable",
     icon: "receipt",
     color: "#3B82F6",
   });
@@ -86,35 +95,42 @@ function transformKPIsFromAPI(data: DashboardKPIs): KPICardType[] {
   kpis.push({
     id: "ticket-medio",
     title: "Ticket Médio",
-    value: data.tickets?.atual?.ticketMedio ?? 0,
-    formattedValue: formatCurrency(data.tickets?.atual?.ticketMedio ?? 0),
-    percentChange: data.tickets?.variacao?.percentual ?? 0,
-    trend: data.tickets?.variacao?.direcao ?? "stable",
+    value: data.tickets?.ticketMedio ?? 0,
+    formattedValue: formatCurrency(data.tickets?.ticketMedio ?? 0),
+    percentChange: data.tickets?.variacaoTicketMedio?.percentual ?? 0,
+    trend:
+      (data.tickets?.variacaoTicketMedio?.direcao as
+        | "up"
+        | "down"
+        | "stable") ?? "stable",
     icon: "tag",
     color: "#F59E0B",
   });
 
-  // Peças
+  // Peças - atual é número direto
   kpis.push({
     id: "pecas",
     title: "Peças",
-    value: data.pecas?.atual?.quantidade ?? 0,
-    formattedValue: formatNumber(data.pecas?.atual?.quantidade ?? 0),
+    value: data.pecas?.atual ?? 0,
+    formattedValue: formatNumber(data.pecas?.atual ?? 0),
     percentChange: data.pecas?.variacao?.percentual ?? 0,
-    trend: data.pecas?.variacao?.direcao ?? "stable",
+    trend:
+      (data.pecas?.variacao?.direcao as "up" | "down" | "stable") ?? "stable",
     icon: "tshirt-crew",
     color: "#8B5CF6",
   });
 
-  // Clientes Novos
+  // Delivery
   kpis.push({
-    id: "clientes-novos",
-    title: "Clientes Novos",
-    value: data.clientes?.novos ?? 0,
-    formattedValue: formatNumber(data.clientes?.novos ?? 0),
-    percentChange: 0,
-    trend: "stable",
-    icon: "account-plus",
+    id: "delivery",
+    title: "Delivery",
+    value: data.delivery?.percentual ?? 0,
+    formattedValue: `${(data.delivery?.percentual ?? 0).toFixed(1)}%`,
+    percentChange: data.delivery?.variacao?.percentual ?? 0,
+    trend:
+      (data.delivery?.variacao?.direcao as "up" | "down" | "stable") ??
+      "stable",
+    icon: "truck-delivery",
     color: "#06B6D4",
   });
 
@@ -158,6 +174,9 @@ function KPICardComponent({ data }: { data: KPICardType }) {
       ? "trending-down"
       : "minus";
 
+  // Status do semáforo baseado na variação percentual
+  const semaforoStatus = getSemaforoStatus(data.percentChange ?? 0);
+
   return (
     <View
       style={[
@@ -169,14 +188,21 @@ function KPICardComponent({ data }: { data: KPICardType }) {
       ]}
     >
       <View style={styles.kpiHeader}>
-        <View
-          style={[styles.iconContainer, { backgroundColor: data.color + "20" }]}
-        >
-          <MaterialCommunityIcons
-            name={data.icon as any}
-            size={24}
-            color={data.color}
-          />
+        <View style={styles.kpiHeaderLeft}>
+          <View
+            style={[
+              styles.iconContainer,
+              { backgroundColor: data.color + "20" },
+            ]}
+          >
+            <MaterialCommunityIcons
+              name={data.icon as any}
+              size={24}
+              color={data.color}
+            />
+          </View>
+          {/* Semáforo de status */}
+          <SemaforoIndicator status={semaforoStatus} size={10} />
         </View>
         <View
           style={[styles.trendBadge, { backgroundColor: trendColor + "20" }]}
@@ -241,7 +267,7 @@ export function KPIsScreen() {
   // Resumo calculado a partir dos dados
   const resumo = React.useMemo(() => {
     if (metricas && isValidDashboardKPIs(metricas)) {
-      const faturamento = metricas.faturamento?.atual?.valor ?? 0;
+      const faturamento = metricas.faturamento?.atual ?? 0;
       const diasPassados = metricas.projecao?.diasUteisPassados || 15;
       const mediaDiaria = diasPassados > 0 ? faturamento / diasPassados : 0;
       const crescimento = metricas.faturamento?.variacao?.percentual ?? 0;
@@ -253,6 +279,7 @@ export function KPIsScreen() {
           2
         )}% vs anterior`,
         crescimentoPositivo: crescimento >= 0,
+        projecaoMes: formatCurrency(metricas.projecao?.valorProjetado ?? 0),
       };
     }
     return {
@@ -260,6 +287,7 @@ export function KPIsScreen() {
       mediaDiaria: "R$ 5.830,00",
       crescimento: "+6,52% vs anterior",
       crescimentoPositivo: true,
+      projecaoMes: "R$ 120.000,00",
     };
   }, [metricas]);
 
@@ -276,19 +304,23 @@ export function KPIsScreen() {
     });
   };
 
-  // Loading state
+  // Loading state - mostra skeleton cards
   if (isLoading) {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
         edges={["bottom"]}
       >
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.accent} />
-          <Text style={[styles.loadingText, { color: colors.mutedText }]}>
+        <FilterBar />
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+        >
+          <Text style={[styles.skeletonTitle, { color: colors.mutedText }]}>
             Carregando indicadores...
           </Text>
-        </View>
+          <KPISkeletonGrid count={6} />
+        </ScrollView>
       </SafeAreaView>
     );
   }
@@ -403,9 +435,7 @@ export function KPIsScreen() {
               <Text
                 style={[styles.summaryValue, { color: colors.textPrimary }]}
               >
-                {metricas
-                  ? formatCurrency(metricas.projecao.faturamentoProjetado)
-                  : "R$ 120.000,00"}
+                {resumo.projecaoMes}
               </Text>
             </View>
             <View style={styles.summaryItem}>
@@ -475,6 +505,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+  kpiHeaderLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
   trendBadge: {
     flexDirection: "row",
     alignItems: "center",
@@ -528,6 +563,12 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 14,
+  },
+  skeletonTitle: {
+    fontSize: 14,
+    textAlign: "center",
+    marginBottom: 16,
+    marginTop: 8,
   },
   errorContainer: {
     flex: 1,

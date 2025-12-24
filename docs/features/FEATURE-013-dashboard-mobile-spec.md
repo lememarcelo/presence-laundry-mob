@@ -3,12 +3,12 @@
 > **Documento Master de Regras de Negócio e Requisitos Mobile**  
 > Criado em: 2025-12-24  
 > Última atualização: 2025-12-24  
-> Status: Onda 1 (🔄 65%) | Onda 2 (🔲 0%)
+> Status: Onda 1 (🔄 80%) | Onda 2 (🔲 0%)
 
 **Documentos Relacionados:**
 
 - [FEATURE-013 - Dashboard Mobile](./FEATURE-013-dashboard-mobile.md) - Especificação técnica original
-- [Backlog de Tarefas Mobile](../specs/FEATURE-013-Dashboard-Mobile-Backlog.md) - Controle de implementação
+- [Backlog de Tarefas Mobile](./FEATURE-013-Dashboard-Mobile-Backlog.md) - Controle de implementação
 - [Feature-012 - Dashboard Web](../../../presence-laundry/docs/features/Feature-012-dashboard.md) - Especificação do frontend web
 
 ---
@@ -146,11 +146,11 @@ src/
 
 | ID     | Requisito                                      | Status |
 | ------ | ---------------------------------------------- | ------ |
-| M-FR10 | Seleção de loja(s) via picker/modal            | 🔄     |
-| M-FR11 | Seleção de período (data início e fim)         | 🔲     |
-| M-FR12 | Presets de período (Hoje, Semana, Mês)         | 🔲     |
-| M-FR13 | Persistência de filtros na sessão              | 🔲     |
-| M-FR14 | FilterBar visível no header ou como barra fixa | 🔄     |
+| M-FR10 | Seleção de loja(s) via picker/modal            | ✅     |
+| M-FR11 | Seleção de período (data início e fim)         | ✅     |
+| M-FR12 | Presets de período (Hoje, Semana, Mês)         | ✅     |
+| M-FR13 | Persistência de filtros na sessão              | ✅     |
+| M-FR14 | FilterBar visível no header ou como barra fixa | ✅     |
 
 ### 3.4 Tela de KPIs
 
@@ -317,27 +317,28 @@ src/
 
 ### 7.1 Componentes Implementados
 
-| Componente     | Descrição                              | Status |
-| -------------- | -------------------------------------- | ------ |
-| `KPICard`      | Card de métrica com valor e variação   | ✅     |
-| `FilterBar`    | Barra de filtros (loja + período)      | 🔄     |
-| `HeatmapGrid`  | Grid customizado para heatmap temporal | ✅     |
-| `RankingList`  | Lista de ranking com barras            | ✅     |
-| `LoadingState` | Componente de loading                  | ✅     |
-| `ErrorState`   | Componente de erro com retry           | ✅     |
-| `EmptyState`   | Componente de estado vazio             | ✅     |
+| Componente        | Descrição                              | Status |
+| ----------------- | -------------------------------------- | ------ |
+| `KPICard`         | Card de métrica com valor e variação   | ✅     |
+| `FilterBar`       | Barra de filtros (loja + período)      | ✅     |
+| `LojaPicker`      | Modal de seleção de lojas              | ✅     |
+| `DateRangePicker` | Seletor de período com calendário      | ✅     |
+| `PeriodPresets`   | Presets de período (Hoje, Semana, Mês) | ✅     |
+| `HeatmapGrid`     | Grid customizado para heatmap temporal | ✅     |
+| `RankingList`     | Lista de ranking com barras            | ✅     |
+| `LoadingState`    | Componente de loading                  | ✅     |
+| `ErrorState`      | Componente de erro com retry           | ✅     |
+| `EmptyState`      | Componente de estado vazio             | ✅     |
 
 ### 7.2 Componentes Pendentes
 
-| Componente          | Descrição                         | Prioridade |
-| ------------------- | --------------------------------- | ---------- |
-| `DateRangePicker`   | Seletor de período com calendário | Alta       |
-| `LojaPicker`        | Modal de seleção de lojas         | Alta       |
-| `PieChart`          | Gráfico de pizza para serviços    | Média      |
-| `DonutChart`        | Gráfico donut para pagamentos     | Média      |
-| `ComparisonCard`    | Card de comparativo loja vs rede  | Média      |
-| `SemaforoIndicator` | Indicador visual de semáforo      | Média      |
-| `SkeletonCard`      | Skeleton loading para cards       | Baixa      |
+| Componente          | Descrição                        | Prioridade |
+| ------------------- | -------------------------------- | ---------- |
+| `PieChart`          | Gráfico de pizza para serviços   | Média      |
+| `DonutChart`        | Gráfico donut para pagamentos    | Média      |
+| `ComparisonCard`    | Card de comparativo loja vs rede | Média      |
+| `SemaforoIndicator` | Indicador visual de semáforo     | Média      |
+| `SkeletonCard`      | Skeleton loading para cards      | Baixa      |
 
 ---
 

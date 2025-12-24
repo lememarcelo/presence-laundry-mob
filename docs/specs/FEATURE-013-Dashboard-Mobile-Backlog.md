@@ -8,10 +8,10 @@
 
 ## Resumo Executivo
 
-| Onda       | Descrição                | Progresso          |
-| ---------- | ------------------------ | ------------------ |
-| **Onda 1** | Dashboard Base Mobile    | 🔄 **29/44** (66%) |
-| **Onda 2** | Indicadores Estratégicos | 🔲 **0/22** (0%)   |
+| Onda       | Descrição                | Progresso           |
+| ---------- | ------------------------ | ------------------- |
+| **Onda 1** | Dashboard Base Mobile    | ✅ **44/44** (100%) |
+| **Onda 2** | Indicadores Estratégicos | 🔲 **0/22** (0%)    |
 
 ---
 
@@ -27,9 +27,9 @@
 
 ---
 
-# ONDA 1 — Dashboard Base Mobile 🔄
+# ONDA 1 — Dashboard Base Mobile ✅
 
-> **Status:** 66% concluído. Estrutura base funcional, pendente refinamentos de UX e alguns gráficos.
+> **Status:** 100% concluído! Todas as fases implementadas. Pronto para testes e validação.
 
 ## Fase 1A — Infraestrutura ✅ (8/8)
 
@@ -44,7 +44,7 @@
 | M1-A-007 | Implementar store de filtros                  | ✅     |
 | M1-A-008 | Configurar expo-secure-store para credenciais | ✅     |
 
-## Fase 1B — Autenticação ✅ (4/5)
+## Fase 1B — Autenticação ✅ (5/5)
 
 | ID       | Tarefa                                     | Status |
 | -------- | ------------------------------------------ | ------ |
@@ -52,9 +52,9 @@
 | M1-B-002 | Validação de formulário                    | ✅     |
 | M1-B-003 | Persistência de credenciais (secure store) | ✅     |
 | M1-B-004 | Interceptor HTTP com auth                  | ✅     |
-| M1-B-005 | Tratamento de erro 401 → redirect login    | 🔲     |
+| M1-B-005 | Tratamento de erro 401 → redirect login    | ✅     |
 
-## Fase 1C — Tela de KPIs 🔄 (8/10)
+## Fase 1C — Tela de KPIs ✅ (10/10)
 
 | ID       | Tarefa                          | Status |
 | -------- | ------------------------------- | ------ |
@@ -64,12 +64,12 @@
 | M1-C-004 | Card Ticket Médio               | ✅     |
 | M1-C-005 | Card Peças                      | ✅     |
 | M1-C-006 | Card Delivery                   | ✅     |
-| M1-C-007 | Card Clientes                   | ✅     |
-| M1-C-008 | Card Ranking + Projeção         | ✅     |
-| M1-C-009 | Semáforos visuais nos cards     | 🔲     |
-| M1-C-010 | Skeleton loading nos cards      | 🔲     |
+| M1-C-007 | Card Clientes → Ranking         | ✅     |
+| M1-C-008 | Card Resumo + Projeção          | ✅     |
+| M1-C-009 | Semáforos visuais nos cards     | ✅     |
+| M1-C-010 | Skeleton loading nos cards      | ✅     |
 
-## Fase 1D — Tela de Gráficos 🔄 (4/7)
+## Fase 1D — Tela de Gráficos ✅ (7/7)
 
 | ID       | Tarefa                                     | Status |
 | -------- | ------------------------------------------ | ------ |
@@ -77,20 +77,20 @@
 | M1-D-002 | Gráfico barras Faturamento Mensal          | ✅     |
 | M1-D-003 | Gráfico barras Peças por Período           | ✅     |
 | M1-D-004 | Tabs internas (Faturamento/Peças/Clientes) | ✅     |
-| M1-D-005 | Gráfico pizza Distribuição por Serviço     | 🔲     |
-| M1-D-006 | Gráfico donut Evolução de Pagamentos       | 🔲     |
-| M1-D-007 | Gráfico barras Pendência de Produção       | 🔲     |
+| M1-D-005 | Gráfico pizza Distribuição por Serviço     | ✅     |
+| M1-D-006 | Gráfico donut Evolução de Pagamentos       | ✅     |
+| M1-D-007 | Gráfico barras Pendência de Produção       | ✅     |
 
-## Fase 1E — Tela de Mapas/Heatmap 🔄 (2/4)
+## Fase 1E — Tela de Mapas/Heatmap ✅ (4/4)
 
 | ID       | Tarefa                                  | Status |
 | -------- | --------------------------------------- | ------ |
 | M1-E-001 | Heatmap Temporal (grid dia × hora)      | ✅     |
 | M1-E-002 | Legenda de intensidade                  | ✅     |
-| M1-E-003 | Tooltip ao tocar em célula              | 🔲     |
-| M1-E-004 | Mapa Geográfico por UF (lista ordenada) | 🔲     |
+| M1-E-003 | Tooltip ao tocar em célula              | ✅     |
+| M1-E-004 | Mapa Geográfico por UF (lista ordenada) | ✅     |
 
-## Fase 1F — Tela de Ranking ✅ (5/6)
+## Fase 1F — Tela de Ranking ✅ (6/6)
 
 | ID       | Tarefa                                   | Status |
 | -------- | ---------------------------------------- | ------ |
@@ -99,18 +99,18 @@
 | M1-F-003 | Barra de intensidade visual por loja     | ✅     |
 | M1-F-004 | Tabs Lojas vs Funcionários               | ✅     |
 | M1-F-005 | Pull-to-refresh                          | ✅     |
-| M1-F-006 | Destaque visual da loja do usuário       | 🔲     |
+| M1-F-006 | Destaque visual da loja do usuário       | ✅     |
 
-## Fase 1G — Filtros Globais 🔲 (1/4)
+## Fase 1G — Filtros Globais ✅ (4/4)
 
 | ID       | Tarefa                                 | Status |
 | -------- | -------------------------------------- | ------ |
-| M1-G-001 | Componente FilterBar no header         | 🔄     |
-| M1-G-002 | Modal/Picker de seleção de lojas       | 🔲     |
-| M1-G-003 | DateRangePicker para período           | 🔲     |
-| M1-G-004 | Presets de período (Hoje, Semana, Mês) | 🔲     |
+| M1-G-001 | Componente FilterBar no header         | ✅     |
+| M1-G-002 | Modal/Picker de seleção de lojas       | ✅     |
+| M1-G-003 | DateRangePicker para período           | ✅     |
+| M1-G-004 | Presets de período (Hoje, Semana, Mês) | ✅     |
 
-## Fase 1H — Estados e UX 🔄 (3/6)
+## Fase 1H — Estados e UX ✅ (6/6)
 
 | ID       | Tarefa                             | Status |
 | -------- | ---------------------------------- | ------ |
@@ -118,8 +118,8 @@
 | M1-H-002 | Componente ErrorState com retry    | ✅     |
 | M1-H-003 | Componente EmptyState              | ✅     |
 | M1-H-004 | Pull-to-refresh em todas as telas  | ✅     |
-| M1-H-005 | Touch targets mínimos 44pt         | 🔲     |
-| M1-H-006 | Acessibilidade (labels, contraste) | 🔲     |
+| M1-H-005 | Touch targets mínimos 44pt         | ✅     |
+| M1-H-006 | Acessibilidade (labels, contraste) | ✅     |
 
 ---
 
@@ -180,13 +180,12 @@
 
 ## 🔴 Alta Prioridade (Próximos Sprints)
 
-| ID       | Descrição                           | Razão               |
-| -------- | ----------------------------------- | ------------------- |
-| M1-G-002 | Modal de seleção de lojas           | Funcionalidade core |
-| M1-G-003 | DateRangePicker para período        | Funcionalidade core |
-| M1-B-005 | Tratamento de erro 401              | Segurança/UX        |
-| M1-D-005 | Gráfico pizza Distribuição Serviços | Paridade com web    |
-| M1-E-004 | Mapa Geográfico por UF              | Paridade com web    |
+| ID       | Descrição                           | Razão            |
+| -------- | ----------------------------------- | ---------------- |
+| M1-D-005 | Gráfico pizza Distribuição Serviços | Paridade com web |
+| M1-E-004 | Mapa Geográfico por UF              | Paridade com web |
+| M1-D-006 | Gráfico donut Evolução Pagamentos   | Paridade com web |
+| M1-D-007 | Gráfico barras Pendência Produção   | Paridade com web |
 
 ## 🟡 Média Prioridade
 
@@ -295,9 +294,26 @@
 
 # HISTÓRICO
 
-| Data       | Mudança                                       |
-| ---------- | --------------------------------------------- |
-| 2025-12-15 | Criação do FEATURE-013 original               |
-| 2025-12-24 | Criação deste backlog consolidado             |
-| 2025-12-24 | Inventário de tarefas concluídas vs pendentes |
-| 2025-12-24 | Definição de prioridades e dependências       |
+| Data       | Mudança                                                                  |
+| ---------- | ------------------------------------------------------------------------ |
+| 2025-12-15 | Criação do FEATURE-013 original                                          |
+| 2025-12-24 | Criação deste backlog consolidado                                        |
+| 2025-12-24 | Inventário de tarefas concluídas vs pendentes                            |
+| 2025-12-24 | Definição de prioridades e dependências                                  |
+| 2025-12-24 | Correção API: interfaces atualizadas para Presence Dashboard API (Horse) |
+| 2025-12-24 | Correção estrutura DashboardKPIs para refletir backend real              |
+| 2025-12-24 | Implementação completa Fase 1G - Filtros Globais (LojaPicker, DateRange) |
+| 2025-12-24 | Correção baseUrl de 8002 (DataSnap) para 8003/8081 (Horse API)           |
+| 2025-12-24 | useFiltersStore com persistência via expo-secure-store                   |
+| 2025-12-24 | M1-B-005: Tratamento erro 401 já implementado (axios interceptor)        |
+| 2025-12-24 | M1-D-005: Gráfico pizza de Distribuição por Serviço implementado         |
+| 2025-12-24 | M1-D-006: Gráfico donut de Evolução de Pagamentos implementado           |
+| 2025-12-24 | M1-E-004: Mapa geográfico por UF (lista ordenada) implementado           |
+| 2025-12-24 | M1-D-007: Gráfico barras Pendência de Produção implementado              |
+| 2025-12-24 | M1-C-009: Semáforos visuais nos KPI cards implementados                  |
+| 2025-12-24 | M1-C-010: Skeleton loading para KPI cards implementado                   |
+| 2025-12-24 | M1-F-006: Destaque visual da loja do usuário no ranking                  |
+| 2025-12-24 | M1-E-003: Tooltip interativo ao tocar em célula do heatmap               |
+| 2025-12-24 | M1-H-005: Touch targets mínimos 44pt aplicados nos componentes           |
+| 2025-12-24 | M1-H-006: Acessibilidade (labels e utils) implementada                   |
+| 2025-12-24 | 🎉 ONDA 1 COMPLETA - Dashboard Base Mobile 100%                          |

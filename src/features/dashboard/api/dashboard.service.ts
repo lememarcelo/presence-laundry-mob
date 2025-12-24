@@ -1,9 +1,13 @@
 /**
- * Dashboard Service - API para TSMDashLaundry (Presence Remote)
+ * Dashboard Service - API para Presence Dashboard API (Horse)
  *
- * Backend: Presence Remote (DataSnap)
- * Módulo: uSMDashLaundry.pas
- * Base URL: http://{host}:{port}/datasnap/rest/TSMDashLaundry
+ * Backend: Presence Dashboard API (Delphi + Horse)
+ * Base URL: http://{host}:{port}/api/v1
+ *
+ * Endpoints usam query parameters:
+ *   ?lojas=01,02 ou ?lojas=--todas--
+ *   &dtIni=2025-01-01
+ *   &dtFim=2025-01-31
  */
 
 import { apiClient } from "@/shared/api/axios-client";
@@ -40,6 +44,20 @@ function formatLojasParam(lojas?: string[]): string {
     return lojas.join(",");
 }
 
+/**
+ * Extrai dados da resposta padrão do backend
+ * Backend retorna: { success: true, data: {...}, timestamp: '...' }
+ */
+function extractData<T>(response: any): T {
+    const raw = response.data;
+    // Se tem wrapper { success, data }
+    if (raw && typeof raw === 'object' && 'data' in raw) {
+        return raw.data as T;
+    }
+    // Se é array direto ou objeto direto
+    return raw as T;
+}
+
 // ========================================
 // Types - Responses do Backend
 // ========================================
@@ -50,67 +68,135 @@ export interface Loja {
     uf?: string;
 }
 
+/**
+ * Variação percentual entre períodos
+ * Backend: TVariacao.ToJSON()
+ */
 export interface VariacaoTemporal {
     valor: number;
     percentual: number;
     direcao: "up" | "down" | "stable";
 }
 
+/**
+ * Métricas de faturamento
+ * Backend: TMetricaFaturamento.ToJSON()
+ */
 export interface MetricaFaturamento {
-    valor: number;
-    valorRede?: number;
-    meta?: number;
+    atual: number;
+    anterior: number;
+    anoAnterior: number;
+    variacao: VariacaoTemporal;
+    variacaoAno: VariacaoTemporal;
 }
 
+/**
+ * Métricas de tickets (ROLs)
+ * Backend: TMetricaTickets.ToJSON()
+ */
 export interface MetricaTickets {
-    quantidade: number;
+    atual: number;
+    anterior: number;
+    anoAnterior: number;
     ticketMedio: number;
-    percentualDelivery: number;
+    ticketMedioAnterior: number;
+    variacao: VariacaoTemporal;
+    variacaoTicketMedio: VariacaoTemporal;
 }
 
+/**
+ * Métricas de peças
+ * Backend: TMetricaPecas.ToJSON()
+ */
 export interface MetricaPecas {
-    quantidade: number;
-    pecasPorAtendimento: number;
-    precoMedioPeca: number;
+    atual: number;
+    anterior: number;
+    anoAnterior: number;
+    precoPeca: number;
+    precoPecaAnterior: number;
+    variacao: VariacaoTemporal;
+    variacaoPrecoPeca: VariacaoTemporal;
 }
 
+/**
+ * Métricas de clientes
+ * Backend: TMetricaClientes.ToJSON()
+ */
 export interface MetricaClientes {
+    total: number;
     ativos: number;
     novos: number;
     inativos: number;
-    total: number;
+    novosAnterior: number;
+    variacaoNovos: VariacaoTemporal;
 }
 
+/**
+ * Métricas de delivery
+ * Backend: TMetricaDelivery.ToJSON()
+ */
+export interface MetricaDelivery {
+    quantidade: number;
+    percentual: number;
+    quantidadeAnterior: number;
+    percentualAnterior: number;
+    variacao: VariacaoTemporal;
+}
+
+/**
+ * Ranking na rede
+ * Backend: TRankingRede.ToJSON()
+ */
 export interface MetricaRanking {
     posicao: number;
     totalLojas: number;
+    faturamento: number;
+    nomeLoja: string;
     variacao: "subiu" | "desceu" | "manteve";
 }
 
-export interface MetricaProjecao {
-    faturamentoProjetado: number;
-    meta?: number;
-    diasUteis: number;
-    diasUteisPassados: number;
+/**
+ * Médias da rede para comparativo
+ * Backend: TMediaRede.ToJSON()
+ */
+export interface MetricaMediaRede {
+    totalLojas: number;
+    faturamento: number;
+    ticketMedio: number;
+    pecas: number;
+    pctDelivery: number;
+    diferencaFaturamento: number;
+    diferencaTicketMedio: number;
+    diferencaPecas: number;
 }
 
+/**
+ * Projeção do mês
+ * Backend: TProjecaoMes.ToJSON()
+ */
+export interface MetricaProjecao {
+    valorAtual: number;
+    valorProjetado: number;
+    meta: number;
+    diasUteisPassados: number;
+    diasUteisTotais: number;
+    diasUteisRestantes: number;
+    percentualMeta: number;
+}
+
+/**
+ * Métricas consolidadas do dashboard
+ * Backend: TMetricasConsolidadas.ToJSON()
+ * Endpoint: GET /api/v1/metricas/consolidadas
+ */
 export interface DashboardKPIs {
-    faturamento: {
-        atual: MetricaFaturamento;
-        anterior?: MetricaFaturamento;
-        anoAnterior?: MetricaFaturamento;
-        variacao?: VariacaoTemporal;
-    };
-    tickets: {
-        atual: MetricaTickets;
-        variacao?: VariacaoTemporal;
-    };
-    pecas: {
-        atual: MetricaPecas;
-        variacao?: VariacaoTemporal;
-    };
+    faturamento: MetricaFaturamento;
+    tickets: MetricaTickets;
+    pecas: MetricaPecas;
     clientes: MetricaClientes;
+    delivery: MetricaDelivery;
     ranking: MetricaRanking;
+    mediaRede: MetricaMediaRede;
     projecao: MetricaProjecao;
 }
 
@@ -232,31 +318,28 @@ export interface ConfigSemaforos {
 }
 
 // ========================================
-// Endpoints do TSMDashLaundry
+// Base Path - Presence Dashboard API
 // ========================================
 
-const BASE_PATH = "/TSMDashLaundry";
+const BASE_PATH = "/api/v1";
 
 /**
- * GET /TSMDashLaundry/Lojas
+ * GET /api/v1/lojas
  * Lista de lojas disponíveis para o dashboard
  */
 export async function getLojas(): Promise<Loja[]> {
-    const url = `${BASE_PATH}/Lojas`;
+    const url = `${BASE_PATH}/lojas`;
     console.log('[Dashboard API] Fetching Lojas... URL:', url);
     try {
         const response = await apiClient.get(url);
-        console.log('[Dashboard API] Lojas raw response.data:', JSON.stringify(response.data).substring(0, 500));
+        console.log('[Dashboard API] Lojas raw response:', JSON.stringify(response.data).substring(0, 500));
 
-        // Backend retorna { value: [...], Count: N }
-        const lojas = response.data?.value ?? response.data ?? [];
+        // Backend retorna { success: true, data: [...], count: N }
+        const lojas = extractData<Loja[]>(response);
 
-        // Log first loja to check structure
         if (Array.isArray(lojas) && lojas.length > 0) {
             console.log('[Dashboard API] First loja example:', JSON.stringify(lojas[0]));
             console.log('[Dashboard API] Total lojas:', lojas.length);
-        } else {
-            console.log('[Dashboard API] No lojas or not an array:', typeof lojas);
         }
 
         return lojas;
@@ -271,7 +354,7 @@ export async function getLojas(): Promise<Loja[]> {
 }
 
 /**
- * GET /TSMDashLaundry/MetricasConsolidadas/{lojas}/{dtIni}/{dtFim}
+ * GET /api/v1/metricas/consolidadas?lojas=...&dtIni=...&dtFim=...
  * KPIs consolidados do dashboard
  */
 export async function getMetricasConsolidadas(
@@ -279,21 +362,20 @@ export async function getMetricasConsolidadas(
     dataInicio: Date,
     dataFim: Date
 ): Promise<DashboardKPIs> {
-    const lojasParam = formatLojasParam(lojas);
-    const dtIni = formatDateForAPI(dataInicio);
-    const dtFim = formatDateForAPI(dataFim);
+    const params = {
+        lojas: formatLojasParam(lojas),
+        dtIni: formatDateForAPI(dataInicio),
+        dtFim: formatDateForAPI(dataFim),
+    };
 
-    console.log('[Dashboard API] MetricasConsolidadas:', { lojasParam, dtIni, dtFim });
+    console.log('[Dashboard API] MetricasConsolidadas:', params);
 
     try {
-        const response = await apiClient.get(
-            `${BASE_PATH}/MetricasConsolidadas/${lojasParam}/${dtIni}/${dtFim}`
-        );
+        const response = await apiClient.get(`${BASE_PATH}/metricas/consolidadas`, { params });
 
-        console.log('[Dashboard API] MetricasConsolidadas response:', response.data);
+        console.log('[Dashboard API] MetricasConsolidadas response:', JSON.stringify(response.data).substring(0, 500));
 
-        // Backend retorna { status: "ok", data: {...} }
-        return response.data?.data ?? response.data;
+        return extractData<DashboardKPIs>(response);
     } catch (error) {
         console.error('[Dashboard API] MetricasConsolidadas ERROR:', error);
         throw error;
@@ -301,7 +383,7 @@ export async function getMetricasConsolidadas(
 }
 
 /**
- * GET /TSMDashLaundry/FaturamentoDiario/{lojas}/{mes}/{ano}
+ * GET /api/v1/graficos/faturamento-diario?lojas=...&mes=...&ano=...
  * Faturamento dia a dia do mês para gráfico de barras
  */
 export async function getFaturamentoDiario(
@@ -309,51 +391,52 @@ export async function getFaturamentoDiario(
     mes?: number,
     ano?: number
 ): Promise<DadosGraficoBarras> {
-    const lojasParam = formatLojasParam(lojas);
-    const mesParam = mes ?? new Date().getMonth() + 1;
-    const anoParam = ano ?? new Date().getFullYear();
+    const params = {
+        lojas: formatLojasParam(lojas),
+        mes: mes ?? new Date().getMonth() + 1,
+        ano: ano ?? new Date().getFullYear(),
+    };
 
-    const response = await apiClient.get(
-        `${BASE_PATH}/FaturamentoDiario/${lojasParam}/${mesParam}/${anoParam}`
-    );
-    return response.data;
+    const response = await apiClient.get(`${BASE_PATH}/graficos/faturamento-diario`, { params });
+    return extractData(response);
 }
 
 /**
- * GET /TSMDashLaundry/FaturamentoMensal/{lojas}/{ano}
+ * GET /api/v1/graficos/faturamento-mensal?lojas=...&ano=...
  * Faturamento mensal comparativo (ano atual vs anterior)
  */
 export async function getFaturamentoMensal(
     lojas: string[],
     ano?: number
 ): Promise<FaturamentoMensalComparativo> {
-    const lojasParam = formatLojasParam(lojas);
-    const anoParam = ano ?? new Date().getFullYear();
+    const params = {
+        lojas: formatLojasParam(lojas),
+        ano: ano ?? new Date().getFullYear(),
+    };
 
-    const response = await apiClient.get(
-        `${BASE_PATH}/FaturamentoMensal/${lojasParam}/${anoParam}`
-    );
-    return response.data;
+    const response = await apiClient.get(`${BASE_PATH}/graficos/faturamento-mensal`, { params });
+    return extractData(response);
 }
 
 /**
- * GET /TSMDashLaundry/Crescimento12Meses/{lojas}/{metrica}
+ * GET /api/v1/graficos/crescimento-12m?lojas=...&metrica=...
  * Linha de crescimento dos últimos 12 meses
  */
 export async function getCrescimento12Meses(
     lojas: string[],
     metrica: "faturamento" | "pecas" | "tickets" = "faturamento"
 ): Promise<DadosGraficoLinha> {
-    const lojasParam = formatLojasParam(lojas);
+    const params = {
+        lojas: formatLojasParam(lojas),
+        metrica,
+    };
 
-    const response = await apiClient.get(
-        `${BASE_PATH}/Crescimento12Meses/${lojasParam}/${metrica}`
-    );
-    return response.data;
+    const response = await apiClient.get(`${BASE_PATH}/graficos/crescimento-12m`, { params });
+    return extractData(response);
 }
 
 /**
- * GET /TSMDashLaundry/DistribuicaoServicos/{lojas}/{dtIni}/{dtFim}
+ * GET /api/v1/graficos/distribuicao-servicos?lojas=...&dtIni=...&dtFim=...
  * Distribuição de faturamento por grupo de serviço (pizza)
  */
 export async function getDistribuicaoServicos(
@@ -361,55 +444,52 @@ export async function getDistribuicaoServicos(
     dataInicio: Date,
     dataFim: Date
 ): Promise<DadosGraficoPizza> {
-    const lojasParam = formatLojasParam(lojas);
-    const dtIni = formatDateForAPI(dataInicio);
-    const dtFim = formatDateForAPI(dataFim);
+    const params = {
+        lojas: formatLojasParam(lojas),
+        dtIni: formatDateForAPI(dataInicio),
+        dtFim: formatDateForAPI(dataFim),
+    };
 
-    const response = await apiClient.get(
-        `${BASE_PATH}/DistribuicaoServicos/${lojasParam}/${dtIni}/${dtFim}`
-    );
-    return response.data;
+    const response = await apiClient.get(`${BASE_PATH}/graficos/distribuicao-servicos`, { params });
+    return extractData(response);
 }
 
 /**
- * GET /TSMDashLaundry/EvolucaoPagamentos/{lojas}/{dtIni}/{dtFim}
+ * GET /api/v1/graficos/evolucao-pagamentos?lojas=...&dtIni=...&dtFim=...
  * Evolução de pagamentos por modalidade
- * Backend retorna: {data: EvolucaoPagamentos[], _source: 'database'|'cache'}
  */
 export async function getEvolucaoPagamentos(
     lojas: string[],
     dataInicio: Date,
     dataFim: Date
 ): Promise<EvolucaoPagamentos[]> {
-    const lojasParam = formatLojasParam(lojas);
-    const dtIni = formatDateForAPI(dataInicio);
-    const dtFim = formatDateForAPI(dataFim);
+    const params = {
+        lojas: formatLojasParam(lojas),
+        dtIni: formatDateForAPI(dataInicio),
+        dtFim: formatDateForAPI(dataFim),
+    };
 
-    const response = await apiClient.get(
-        `${BASE_PATH}/EvolucaoPagamentos/${lojasParam}/${dtIni}/${dtFim}`
-    );
-    // Backend retorna { data: [...], _source: '...' }
-    const wrapper = response.data as { data: EvolucaoPagamentos[] };
-    return wrapper.data ?? response.data?.value ?? response.data ?? [];
+    const response = await apiClient.get(`${BASE_PATH}/graficos/evolucao-pagamentos`, { params });
+    return extractData(response);
 }
 
 /**
- * GET /TSMDashLaundry/PendenciaProducao/{lojas}
+ * GET /api/v1/graficos/pendencia-producao?lojas=...
  * Pendências de produção (backlog) por dias de atraso
  */
 export async function getPendenciaProducao(
     lojas: string[]
 ): Promise<DadosPendenciaProducao> {
-    const lojasParam = formatLojasParam(lojas);
+    const params = {
+        lojas: formatLojasParam(lojas),
+    };
 
-    const response = await apiClient.get(
-        `${BASE_PATH}/PendenciaProducao/${lojasParam}`
-    );
-    return response.data;
+    const response = await apiClient.get(`${BASE_PATH}/graficos/pendencia-producao`, { params });
+    return extractData(response);
 }
 
 /**
- * GET /TSMDashLaundry/MapaTemporal/{lojas}/{dtIni}/{dtFim}
+ * GET /api/v1/mapas/temporal?lojas=...&dtIni=...&dtFim=...
  * Mapa de calor temporal (matriz dia×hora)
  */
 export async function getMapaTemporal(
@@ -417,18 +497,18 @@ export async function getMapaTemporal(
     dataInicio: Date,
     dataFim: Date
 ): Promise<DadosHeatmapTemporal> {
-    const lojasParam = formatLojasParam(lojas);
-    const dtIni = formatDateForAPI(dataInicio);
-    const dtFim = formatDateForAPI(dataFim);
+    const params = {
+        lojas: formatLojasParam(lojas),
+        dtIni: formatDateForAPI(dataInicio),
+        dtFim: formatDateForAPI(dataFim),
+    };
 
-    const response = await apiClient.get(
-        `${BASE_PATH}/MapaTemporal/${lojasParam}/${dtIni}/${dtFim}`
-    );
-    return response.data.data || response.data;
+    const response = await apiClient.get(`${BASE_PATH}/mapas/temporal`, { params });
+    return extractData(response);
 }
 
 /**
- * GET /TSMDashLaundry/MapaGeografico/{lojas}/{dtIni}/{dtFim}
+ * GET /api/v1/mapas/geografico?lojas=...&dtIni=...&dtFim=...
  * Dados geográficos por UF
  */
 export async function getMapaGeografico(
@@ -436,35 +516,35 @@ export async function getMapaGeografico(
     dataInicio: Date,
     dataFim: Date
 ): Promise<DadosMapaGeografico> {
-    const lojasParam = formatLojasParam(lojas);
-    const dtIni = formatDateForAPI(dataInicio);
-    const dtFim = formatDateForAPI(dataFim);
+    const params = {
+        lojas: formatLojasParam(lojas),
+        dtIni: formatDateForAPI(dataInicio),
+        dtFim: formatDateForAPI(dataFim),
+    };
 
-    const response = await apiClient.get(
-        `${BASE_PATH}/MapaGeografico/${lojasParam}/${dtIni}/${dtFim}`
-    );
-    return response.data;
+    const response = await apiClient.get(`${BASE_PATH}/mapas/geografico`, { params });
+    return extractData(response);
 }
 
 /**
- * GET /TSMDashLaundry/RankingLojas/{dtIni}/{dtFim}
+ * GET /api/v1/ranking/lojas?dtIni=...&dtFim=...
  * Ranking de todas as lojas
  */
 export async function getRankingLojas(
     dataInicio: Date,
     dataFim: Date
 ): Promise<DadosRankingLojas> {
-    const dtIni = formatDateForAPI(dataInicio);
-    const dtFim = formatDateForAPI(dataFim);
+    const params = {
+        dtIni: formatDateForAPI(dataInicio),
+        dtFim: formatDateForAPI(dataFim),
+    };
 
-    const response = await apiClient.get(
-        `${BASE_PATH}/RankingLojas/${dtIni}/${dtFim}`
-    );
-    return response.data;
+    const response = await apiClient.get(`${BASE_PATH}/ranking/lojas`, { params });
+    return extractData(response);
 }
 
 /**
- * GET /TSMDashLaundry/RankingRede/{loja}/{dtIni}/{dtFim}
+ * GET /api/v1/ranking/rede?loja=...&dtIni=...&dtFim=...
  * Posição de uma loja específica na rede
  */
 export async function getRankingRede(
@@ -472,17 +552,18 @@ export async function getRankingRede(
     dataInicio: Date,
     dataFim: Date
 ): Promise<MetricaRanking & { faturamento: number }> {
-    const dtIni = formatDateForAPI(dataInicio);
-    const dtFim = formatDateForAPI(dataFim);
+    const params = {
+        loja,
+        dtIni: formatDateForAPI(dataInicio),
+        dtFim: formatDateForAPI(dataFim),
+    };
 
-    const response = await apiClient.get(
-        `${BASE_PATH}/RankingRede/${loja}/${dtIni}/${dtFim}`
-    );
-    return response.data;
+    const response = await apiClient.get(`${BASE_PATH}/ranking/rede`, { params });
+    return extractData(response);
 }
 
 /**
- * GET /TSMDashLaundry/DiasUteis/{loja}/{ano}/{mes}
+ * GET /api/v1/dias-uteis?loja=...&ano=...&mes=...
  * Dias úteis do mês para cálculo de projeção
  */
 export async function getDiasUteis(
@@ -490,32 +571,33 @@ export async function getDiasUteis(
     ano?: number,
     mes?: number
 ): Promise<{ diasUteis: number; diasUteisPassados: number; diaAtual: number }> {
-    const anoParam = ano ?? new Date().getFullYear();
-    const mesParam = mes ?? new Date().getMonth() + 1;
+    const params = {
+        loja,
+        ano: ano ?? new Date().getFullYear(),
+        mes: mes ?? new Date().getMonth() + 1,
+    };
 
-    const response = await apiClient.get(
-        `${BASE_PATH}/DiasUteis/${loja}/${anoParam}/${mesParam}`
-    );
-    return response.data;
+    const response = await apiClient.get(`${BASE_PATH}/dias-uteis`, { params });
+    return extractData(response);
 }
 
 /**
- * GET /TSMDashLaundry/PassivosFinanceiros/{lojas}
+ * GET /api/v1/passivos-financeiros?lojas=...
  * Passivos financeiros (ROLs em aberto, planos, créditos)
  */
 export async function getPassivosFinanceiros(
     lojas: string[]
 ): Promise<PassivosFinanceiros> {
-    const lojasParam = formatLojasParam(lojas);
+    const params = {
+        lojas: formatLojasParam(lojas),
+    };
 
-    const response = await apiClient.get(
-        `${BASE_PATH}/PassivosFinanceiros/${lojasParam}`
-    );
-    return response.data;
+    const response = await apiClient.get(`${BASE_PATH}/passivos-financeiros`, { params });
+    return extractData(response);
 }
 
 /**
- * GET /TSMDashLaundry/PrazosEntrega/{lojas}/{dtIni}/{dtFim}
+ * GET /api/v1/prazos-entrega?lojas=...&dtIni=...&dtFim=...
  * Estatísticas de prazos de entrega por faixa
  */
 export async function getPrazosEntrega(
@@ -523,37 +605,35 @@ export async function getPrazosEntrega(
     dataInicio: Date,
     dataFim: Date
 ): Promise<PrazosEntrega> {
-    const lojasParam = formatLojasParam(lojas);
-    const dtIni = formatDateForAPI(dataInicio);
-    const dtFim = formatDateForAPI(dataFim);
+    const params = {
+        lojas: formatLojasParam(lojas),
+        dtIni: formatDateForAPI(dataInicio),
+        dtFim: formatDateForAPI(dataFim),
+    };
 
-    const response = await apiClient.get(
-        `${BASE_PATH}/PrazosEntrega/${lojasParam}/${dtIni}/${dtFim}`
-    );
-    return response.data;
+    const response = await apiClient.get(`${BASE_PATH}/prazos-entrega`, { params });
+    return extractData(response);
 }
 
 /**
- * GET /TSMDashLaundry/ConfigSemaforos/{loja}
+ * GET /api/v1/config/semaforos?loja=...
  * Configuração de semáforos/thresholds
  */
 export async function getConfigSemaforos(
     loja: string
 ): Promise<ConfigSemaforos> {
-    const response = await apiClient.get(`${BASE_PATH}/ConfigSemaforos/${loja}`);
-    return response.data;
+    const params = { loja };
+    const response = await apiClient.get(`${BASE_PATH}/config/semaforos`, { params });
+    return extractData(response);
 }
 
 /**
- * POST /TSMDashLaundry/updateConfigSemaforos
+ * PUT /api/v1/config/semaforos
  * Salvar configuração de semáforos
  */
 export async function saveConfigSemaforos(
     config: ConfigSemaforos & { loja: string }
 ): Promise<{ success: boolean }> {
-    const response = await apiClient.post(
-        `${BASE_PATH}/updateConfigSemaforos`,
-        config
-    );
+    const response = await apiClient.put(`${BASE_PATH}/config/semaforos`, config);
     return response.data;
 }

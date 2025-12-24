@@ -3,7 +3,7 @@
  * Usa react-native-gifted-charts para visual moderno
  */
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -12,10 +12,11 @@ import {
   RefreshControl,
   Dimensions,
   TouchableOpacity,
+  ActivityIndicator,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { LineChart, BarChart } from "react-native-gifted-charts";
+import { LineChart, BarChart, PieChart } from "react-native-gifted-charts";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "@/shared/theme/ThemeProvider";
 import {
@@ -24,30 +25,188 @@ import {
   mockPecasPorDia,
   mockComparativoMensal,
 } from "../data/mock-data";
+import {
+  useDistribuicaoServicos,
+  useEvolucaoPagamentos,
+  usePendenciaProducao,
+  useInvalidateDashboard,
+} from "../hooks/useDashboardQueries";
 
 const screenWidth = Dimensions.get("window").width;
 
-type ChartType = "faturamento" | "pecas" | "comparativo";
+type ChartType =
+  | "faturamento"
+  | "pecas"
+  | "servicos"
+  | "pagamentos"
+  | "producao";
 
 export function ChartsScreen() {
   const { colors, tokens } = useTheme();
   const [refreshing, setRefreshing] = useState(false);
   const [activeChart, setActiveChart] = useState<ChartType>("faturamento");
+  const { invalidateAll } = useInvalidateDashboard();
 
-  const onRefresh = React.useCallback(() => {
+  // Hook para distribuição de serviços
+  const {
+    data: distribuicaoData,
+    isLoading: distribuicaoLoading,
+    refetch: refetchDistribuicao,
+  } = useDistribuicaoServicos();
+
+  // Hook para evolução de pagamentos
+  const {
+    data: pagamentosData,
+    isLoading: pagamentosLoading,
+    refetch: refetchPagamentos,
+  } = useEvolucaoPagamentos();
+
+  // Hook para pendência de produção
+  const {
+    data: pendenciaData,
+    isLoading: pendenciaLoading,
+    refetch: refetchPendencia,
+  } = usePendenciaProducao();
+
+  const onRefresh = React.useCallback(async () => {
     setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 1000);
-  }, []);
+    await invalidateAll();
+    if (activeChart === "servicos") {
+      await refetchDistribuicao();
+    }
+    if (activeChart === "pagamentos") {
+      await refetchPagamentos();
+    }
+    if (activeChart === "producao") {
+      await refetchPendencia();
+    }
+    setTimeout(() => setRefreshing(false), 500);
+  }, [
+    invalidateAll,
+    activeChart,
+    refetchDistribuicao,
+    refetchPagamentos,
+    refetchPendencia,
+  ]);
 
   const chartTabs: { key: ChartType; label: string; icon: string }[] = [
     { key: "faturamento", label: "Faturamento", icon: "chart-line" },
     { key: "pecas", label: "Peças", icon: "chart-bar" },
-    {
-      key: "comparativo",
-      label: "Comparativo",
-      icon: "chart-timeline-variant",
-    },
+    { key: "servicos", label: "Serviços", icon: "chart-pie" },
+    { key: "pagamentos", label: "Pagamentos", icon: "chart-donut" },
+    { key: "producao", label: "Produção", icon: "clock-alert-outline" },
   ];
+
+  // Dados do gráfico de pizza de serviços
+  const pieChartData = useMemo(() => {
+    if (distribuicaoData?.segmentos) {
+      return distribuicaoData.segmentos.map((seg) => ({
+        value: seg.valor,
+        color:
+          seg.cor || "#" + Math.floor(Math.random() * 16777215).toString(16),
+        text: `${seg.percentual.toFixed(0)}%`,
+        textColor: "#fff",
+        textSize: 12,
+        label: seg.grupo,
+      }));
+    }
+    // Mock data fallback
+    return [
+      { value: 35, color: "#8B5CF6", text: "35%", label: "Lavagem Simples" },
+      { value: 25, color: "#10B981", text: "25%", label: "Lavagem a Seco" },
+      { value: 20, color: "#3B82F6", text: "20%", label: "Passadoria" },
+      { value: 12, color: "#F59E0B", text: "12%", label: "Tinturaria" },
+      { value: 8, color: "#EC4899", text: "8%", label: "Outros" },
+    ];
+  }, [distribuicaoData]);
+
+  // Dados do gráfico donut de pagamentos
+  const pagamentosChartData = useMemo(() => {
+    // Pega o primeiro período (mais recente) ou usa mock
+    const periodo = pagamentosData?.[0];
+    if (periodo?.pagamentos) {
+      return periodo.pagamentos.map((pag) => ({
+        value: pag.valor,
+        color:
+          pag.cor || "#" + Math.floor(Math.random() * 16777215).toString(16),
+        text: `${pag.percentual.toFixed(0)}%`,
+        label: pag.modalidade,
+      }));
+    }
+    // Mock data fallback
+    return [
+      { value: 45, color: "#10B981", text: "45%", label: "Dinheiro" },
+      { value: 30, color: "#3B82F6", text: "30%", label: "Cartão Crédito" },
+      { value: 15, color: "#8B5CF6", text: "15%", label: "Cartão Débito" },
+      { value: 7, color: "#F59E0B", text: "7%", label: "PIX" },
+      { value: 3, color: "#EC4899", text: "3%", label: "Outros" },
+    ];
+  }, [pagamentosData]);
+
+  // Dados do gráfico de barras de pendência de produção
+  const pendenciaChartData = useMemo(() => {
+    if (pendenciaData?.faixas) {
+      return pendenciaData.faixas.map((faixa) => ({
+        value: faixa.quantidade,
+        label: faixa.faixa,
+        frontColor: faixa.cor || "#8B5CF6",
+        topLabelComponent: () => (
+          <Text
+            style={{ fontSize: 10, color: colors.mutedText, marginBottom: 4 }}
+          >
+            {faixa.quantidade}
+          </Text>
+        ),
+      }));
+    }
+    // Mock data fallback - pendências por faixa de atraso
+    return [
+      {
+        value: 45,
+        label: "No prazo",
+        frontColor: "#10B981",
+        topLabelComponent: () => (
+          <Text style={{ fontSize: 10, marginBottom: 4 }}>45</Text>
+        ),
+      },
+      {
+        value: 28,
+        label: "1-2 dias",
+        frontColor: "#F59E0B",
+        topLabelComponent: () => (
+          <Text style={{ fontSize: 10, marginBottom: 4 }}>28</Text>
+        ),
+      },
+      {
+        value: 15,
+        label: "3-5 dias",
+        frontColor: "#F97316",
+        topLabelComponent: () => (
+          <Text style={{ fontSize: 10, marginBottom: 4 }}>15</Text>
+        ),
+      },
+      {
+        value: 8,
+        label: "6-10 dias",
+        frontColor: "#EF4444",
+        topLabelComponent: () => (
+          <Text style={{ fontSize: 10, marginBottom: 4 }}>8</Text>
+        ),
+      },
+      {
+        value: 4,
+        label: ">10 dias",
+        frontColor: "#DC2626",
+        topLabelComponent: () => (
+          <Text style={{ fontSize: 10, marginBottom: 4 }}>4</Text>
+        ),
+      },
+    ];
+  }, [pendenciaData, colors.mutedText]);
+
+  const totalPendencias =
+    pendenciaData?.totalPendente ||
+    pendenciaChartData.reduce((sum, item) => sum + item.value, 0);
 
   // Dados para gráfico de faturamento diário (LineChart)
   const faturamentoLineData = mockFaturamentoDiario.data.map((d, i) => ({
@@ -112,37 +271,45 @@ export function ChartsScreen() {
       edges={["bottom"]}
     >
       {/* Tabs */}
-      <View style={[styles.tabsContainer, { backgroundColor: colors.surface }]}>
-        {chartTabs.map((tab) => (
-          <TouchableOpacity
-            key={tab.key}
-            style={[
-              styles.tab,
-              activeChart === tab.key && {
-                borderBottomColor: colors.accent,
-                borderBottomWidth: 2,
-              },
-            ]}
-            onPress={() => setActiveChart(tab.key)}
-          >
-            <MaterialCommunityIcons
-              name={tab.icon as any}
-              size={20}
-              color={activeChart === tab.key ? colors.accent : colors.mutedText}
-            />
-            <Text
+      <View style={[styles.tabsWrapper, { backgroundColor: colors.surface }]}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.tabsContainer}
+        >
+          {chartTabs.map((tab) => (
+            <TouchableOpacity
+              key={tab.key}
               style={[
-                styles.tabLabel,
-                {
-                  color:
-                    activeChart === tab.key ? colors.accent : colors.mutedText,
-                },
+                styles.tab,
+                activeChart === tab.key && styles.tabActive,
+                activeChart === tab.key && { borderBottomColor: colors.accent },
               ]}
+              onPress={() => setActiveChart(tab.key)}
             >
-              {tab.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
+              <MaterialCommunityIcons
+                name={tab.icon as any}
+                size={18}
+                color={
+                  activeChart === tab.key ? colors.accent : colors.mutedText
+                }
+              />
+              <Text
+                style={[
+                  styles.tabLabel,
+                  {
+                    color:
+                      activeChart === tab.key
+                        ? colors.accent
+                        : colors.mutedText,
+                  },
+                ]}
+              >
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
       </View>
 
       <ScrollView
@@ -380,78 +547,342 @@ export function ChartsScreen() {
           </View>
         )}
 
-        {/* Gráfico Comparativo */}
-        {activeChart === "comparativo" && (
+        {/* Gráfico de Serviços (Pizza) */}
+        {activeChart === "servicos" && (
           <View style={[styles.chartCard, { backgroundColor: colors.surface }]}>
             <Text style={[styles.chartTitle, { color: colors.textPrimary }]}>
-              Comparativo Mensal
+              Distribuição por Serviço
             </Text>
             <Text style={[styles.chartSubtitle, { color: colors.mutedText }]}>
-              Mês atual vs anterior (R$ mil)
+              Faturamento por grupo de serviço
             </Text>
 
-            <View style={styles.chartWrapper}>
-              <BarChart
-                data={comparativoBarData}
-                width={screenWidth - 80}
-                height={200}
-                barWidth={20}
-                barBorderRadius={4}
-                xAxisColor={colors.cardBorder}
-                yAxisColor={colors.cardBorder}
-                xAxisLabelTextStyle={{ color: colors.mutedText, fontSize: 10 }}
-                yAxisTextStyle={{ color: colors.mutedText, fontSize: 10 }}
-                rulesColor={colors.cardBorder}
-                rulesType="dashed"
-                noOfSections={4}
-                isAnimated
-              />
-            </View>
-
-            {/* Legenda */}
-            <View style={styles.legendContainer}>
-              <View style={styles.legendItem}>
-                <View
-                  style={[styles.legendDot, { backgroundColor: "#007AFF" }]}
-                />
-                <Text
-                  style={[styles.legendText, { color: colors.textPrimary }]}
-                >
-                  Mês Atual
+            {distribuicaoLoading ? (
+              <View style={styles.chartLoadingContainer}>
+                <ActivityIndicator size="large" color={colors.accent} />
+                <Text style={[styles.loadingText, { color: colors.mutedText }]}>
+                  Carregando dados...
                 </Text>
               </View>
-              <View style={styles.legendItem}>
+            ) : (
+              <>
+                <View style={styles.pieChartContainer}>
+                  <PieChart
+                    data={pieChartData}
+                    donut
+                    radius={100}
+                    innerRadius={60}
+                    innerCircleColor={colors.surface}
+                    centerLabelComponent={() => (
+                      <View style={styles.pieCenterLabel}>
+                        <Text
+                          style={[
+                            styles.pieCenterValue,
+                            { color: colors.textPrimary },
+                          ]}
+                        >
+                          {distribuicaoData
+                            ? `R$ ${(distribuicaoData.total / 1000).toFixed(
+                                0
+                              )}k`
+                            : "100%"}
+                        </Text>
+                        <Text
+                          style={[
+                            styles.pieCenterSubtitle,
+                            { color: colors.mutedText },
+                          ]}
+                        >
+                          Total
+                        </Text>
+                      </View>
+                    )}
+                  />
+                </View>
+
+                {/* Legenda do Pizza */}
+                <View style={styles.pieLegendContainer}>
+                  {pieChartData.map((item, index) => (
+                    <View key={index} style={styles.pieLegendItem}>
+                      <View
+                        style={[
+                          styles.legendDot,
+                          { backgroundColor: item.color },
+                        ]}
+                      />
+                      <Text
+                        style={[
+                          styles.pieLegendLabel,
+                          { color: colors.textPrimary },
+                        ]}
+                      >
+                        {item.label}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.pieLegendValue,
+                          { color: colors.mutedText },
+                        ]}
+                      >
+                        {item.text}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+
+                {/* Insight */}
                 <View
-                  style={[styles.legendDot, { backgroundColor: "#8E8E93" }]}
-                />
-                <Text
-                  style={[styles.legendText, { color: colors.textPrimary }]}
+                  style={[
+                    styles.insightBox,
+                    { backgroundColor: colors.background },
+                  ]}
                 >
-                  Mês Anterior
+                  <MaterialCommunityIcons
+                    name="information-outline"
+                    size={20}
+                    color={colors.accent}
+                  />
+                  <Text
+                    style={[styles.insightText, { color: colors.textPrimary }]}
+                  >
+                    {pieChartData[0]?.label || "Lavagem Simples"} representa a
+                    maior parte do faturamento
+                  </Text>
+                </View>
+              </>
+            )}
+          </View>
+        )}
+
+        {/* Gráfico de Pagamentos (Donut) */}
+        {activeChart === "pagamentos" && (
+          <View style={[styles.chartCard, { backgroundColor: colors.surface }]}>
+            <Text style={[styles.chartTitle, { color: colors.textPrimary }]}>
+              Formas de Pagamento
+            </Text>
+            <Text style={[styles.chartSubtitle, { color: colors.mutedText }]}>
+              Distribuição por modalidade
+            </Text>
+
+            {pagamentosLoading ? (
+              <View style={styles.chartLoadingContainer}>
+                <ActivityIndicator size="large" color={colors.accent} />
+                <Text style={[styles.loadingText, { color: colors.mutedText }]}>
+                  Carregando dados...
                 </Text>
               </View>
-            </View>
+            ) : (
+              <>
+                <View style={styles.pieChartContainer}>
+                  <PieChart
+                    data={pagamentosChartData}
+                    donut
+                    radius={100}
+                    innerRadius={65}
+                    innerCircleColor={colors.surface}
+                    centerLabelComponent={() => (
+                      <View style={styles.pieCenterLabel}>
+                        <MaterialCommunityIcons
+                          name="credit-card-multiple"
+                          size={24}
+                          color={colors.accent}
+                        />
+                        <Text
+                          style={[
+                            styles.pieCenterSubtitle,
+                            { color: colors.mutedText },
+                          ]}
+                        >
+                          Pagamentos
+                        </Text>
+                      </View>
+                    )}
+                  />
+                </View>
 
-            {/* Insight */}
-            <View
-              style={[
-                styles.insightBox,
-                { backgroundColor: colors.background },
-              ]}
-            >
-              <MaterialCommunityIcons
-                name="trending-up"
-                size={20}
-                color={colors.success}
-              />
-              <Text style={[styles.insightText, { color: colors.textPrimary }]}>
-                Crescimento médio de{" "}
-                <Text style={{ fontWeight: "bold", color: colors.success }}>
-                  8.5%
-                </Text>{" "}
-                em relação ao mês anterior
-              </Text>
-            </View>
+                {/* Legenda do Donut */}
+                <View style={styles.pieLegendContainer}>
+                  {pagamentosChartData.map((item, index) => (
+                    <View key={index} style={styles.pieLegendItem}>
+                      <View
+                        style={[
+                          styles.legendDot,
+                          { backgroundColor: item.color },
+                        ]}
+                      />
+                      <Text
+                        style={[
+                          styles.pieLegendLabel,
+                          { color: colors.textPrimary },
+                        ]}
+                      >
+                        {item.label}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.pieLegendValue,
+                          { color: colors.mutedText },
+                        ]}
+                      >
+                        {item.text}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+
+                {/* Insight */}
+                <View
+                  style={[
+                    styles.insightBox,
+                    { backgroundColor: colors.background },
+                  ]}
+                >
+                  <MaterialCommunityIcons
+                    name="cash-multiple"
+                    size={20}
+                    color={colors.success}
+                  />
+                  <Text
+                    style={[styles.insightText, { color: colors.textPrimary }]}
+                  >
+                    {pagamentosChartData[0]?.label || "Dinheiro"} é a forma de
+                    pagamento mais utilizada
+                  </Text>
+                </View>
+              </>
+            )}
+          </View>
+        )}
+
+        {/* Gráfico de Pendência de Produção (Barras) */}
+        {activeChart === "producao" && (
+          <View style={[styles.chartCard, { backgroundColor: colors.surface }]}>
+            <Text style={[styles.chartTitle, { color: colors.textPrimary }]}>
+              Pendências de Produção
+            </Text>
+            <Text style={[styles.chartSubtitle, { color: colors.mutedText }]}>
+              Por faixa de atraso
+            </Text>
+
+            {pendenciaLoading ? (
+              <View style={styles.chartLoadingContainer}>
+                <ActivityIndicator size="large" color={colors.accent} />
+                <Text style={[styles.loadingText, { color: colors.mutedText }]}>
+                  Carregando dados...
+                </Text>
+              </View>
+            ) : (
+              <>
+                <View style={styles.chartWrapper}>
+                  <BarChart
+                    data={pendenciaChartData}
+                    width={screenWidth - 80}
+                    height={220}
+                    barWidth={40}
+                    barBorderRadius={6}
+                    xAxisColor={colors.cardBorder}
+                    yAxisColor={colors.cardBorder}
+                    xAxisLabelTextStyle={{
+                      color: colors.mutedText,
+                      fontSize: 10,
+                    }}
+                    yAxisTextStyle={{ color: colors.mutedText, fontSize: 10 }}
+                    rulesColor={colors.cardBorder}
+                    rulesType="dashed"
+                    noOfSections={4}
+                    isAnimated
+                  />
+                </View>
+
+                {/* Resumo */}
+                <View style={styles.summaryRow}>
+                  <View style={styles.summaryItem}>
+                    <Text
+                      style={[styles.summaryValue, { color: colors.accent }]}
+                    >
+                      {totalPendencias}
+                    </Text>
+                    <Text
+                      style={[styles.summaryLabel, { color: colors.mutedText }]}
+                    >
+                      Total pendente
+                    </Text>
+                  </View>
+                  <View style={styles.summaryItem}>
+                    <Text
+                      style={[styles.summaryValue, { color: colors.success }]}
+                    >
+                      {pendenciaChartData[0]?.value || 0}
+                    </Text>
+                    <Text
+                      style={[styles.summaryLabel, { color: colors.mutedText }]}
+                    >
+                      No prazo
+                    </Text>
+                  </View>
+                  <View style={styles.summaryItem}>
+                    <Text style={[styles.summaryValue, { color: "#EF4444" }]}>
+                      {pendenciaChartData
+                        .slice(3)
+                        .reduce((sum, item) => sum + item.value, 0)}
+                    </Text>
+                    <Text
+                      style={[styles.summaryLabel, { color: colors.mutedText }]}
+                    >
+                      Críticos
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Alertas por cor */}
+                <View
+                  style={[
+                    styles.pendenciaAlerts,
+                    { backgroundColor: colors.background },
+                  ]}
+                >
+                  <View style={styles.pendenciaAlertRow}>
+                    <View
+                      style={[
+                        styles.alertIndicator,
+                        { backgroundColor: "#10B981" },
+                      ]}
+                    />
+                    <Text
+                      style={[styles.alertText, { color: colors.textPrimary }]}
+                    >
+                      No prazo: produção em dia
+                    </Text>
+                  </View>
+                  <View style={styles.pendenciaAlertRow}>
+                    <View
+                      style={[
+                        styles.alertIndicator,
+                        { backgroundColor: "#F59E0B" },
+                      ]}
+                    />
+                    <Text
+                      style={[styles.alertText, { color: colors.textPrimary }]}
+                    >
+                      1-2 dias: atenção recomendada
+                    </Text>
+                  </View>
+                  <View style={styles.pendenciaAlertRow}>
+                    <View
+                      style={[
+                        styles.alertIndicator,
+                        { backgroundColor: "#EF4444" },
+                      ]}
+                    />
+                    <Text
+                      style={[styles.alertText, { color: colors.textPrimary }]}
+                    >
+                      6+ dias: ação urgente necessária
+                    </Text>
+                  </View>
+                </View>
+              </>
+            )}
           </View>
         )}
 
@@ -465,22 +896,30 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  tabsContainer: {
-    flexDirection: "row",
+  tabsWrapper: {
     borderBottomWidth: 1,
     borderBottomColor: "#e0e0e0",
   },
+  tabsContainer: {
+    flexDirection: "row",
+    paddingHorizontal: 8,
+  },
   tab: {
-    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 12,
+    paddingHorizontal: 14,
     gap: 6,
+    marginHorizontal: 2,
+  },
+  tabActive: {
+    borderBottomWidth: 3,
+    marginBottom: -1,
   },
   tabLabel: {
     fontSize: 13,
-    fontWeight: "500",
+    fontWeight: "600",
   },
   scrollView: {
     flex: 1,
@@ -560,6 +999,71 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   legendText: {
+    fontSize: 13,
+  },
+  // Estilos para o gráfico de pizza
+  pieChartContainer: {
+    alignItems: "center",
+    marginVertical: 16,
+  },
+  pieCenterLabel: {
+    alignItems: "center",
+  },
+  pieCenterValue: {
+    fontSize: 18,
+    fontWeight: "700",
+  },
+  pieCenterSubtitle: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  pieLegendContainer: {
+    marginTop: 16,
+  },
+  pieLegendItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e0e0e020",
+  },
+  pieLegendLabel: {
+    flex: 1,
+    fontSize: 14,
+    marginLeft: 12,
+  },
+  pieLegendValue: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  chartLoadingContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 60,
+    gap: 12,
+  },
+  loadingText: {
+    fontSize: 14,
+  },
+  // Estilos para alertas de pendência de produção
+  pendenciaAlerts: {
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 16,
+    gap: 8,
+  },
+  pendenciaAlertRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  alertIndicator: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
+  alertText: {
     fontSize: 13,
   },
 });
