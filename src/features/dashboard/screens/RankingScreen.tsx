@@ -24,6 +24,7 @@ import {
   useInvalidateDashboard,
 } from "../hooks/useDashboardQueries";
 import { DadosRankingLojas } from "../api/dashboard.service";
+import { FilterBar } from "../components/FilterBarNew";
 
 type RankingType = "lojas" | "funcionarios";
 
@@ -215,6 +216,9 @@ export function RankingScreen() {
       style={[styles.container, { backgroundColor: colors.background }]}
       edges={["bottom"]}
     >
+      {/* Filtros Globais */}
+      <FilterBar />
+
       {/* Tabs */}
       <View style={[styles.tabsContainer, { backgroundColor: colors.surface }]}>
         <TouchableOpacity

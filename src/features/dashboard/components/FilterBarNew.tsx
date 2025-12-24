@@ -12,6 +12,7 @@ import { useLojas } from "../hooks/useDashboardQueries";
 import { LojaPicker } from "./LojaPicker";
 import { DateRangePicker } from "./DateRangePicker";
 import { PeriodPresetsInline } from "./PeriodPresets";
+import { OfflineBanner } from "./OfflineIndicator";
 
 // ============================================
 // FilterBar Component
@@ -71,6 +72,9 @@ export function FilterBar() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.surface }]}>
+      {/* Banner de Offline */}
+      <OfflineBanner />
+
       {/* Linha 1: Seletor de Lojas */}
       <View style={styles.row}>
         <TouchableOpacity

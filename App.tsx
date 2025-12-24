@@ -13,12 +13,16 @@ import { ThemeProvider } from "./src/shared/theme/ThemeProvider";
 import { RootNavigator } from "./src/navigation/RootNavigator";
 
 // Configuração do QueryClient para TanStack Query
+// gcTime alto para manter dados em cache quando offline
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: 2,
-      staleTime: 1000 * 60 * 5, // 5 minutos
+      staleTime: 1000 * 60 * 5, // 5 minutos - dados "frescos"
+      gcTime: 1000 * 60 * 60 * 24, // 24 horas - mantém em cache para offline
       refetchOnWindowFocus: false,
+      refetchOnReconnect: true, // Refetch quando reconectar
+      networkMode: "offlineFirst", // Usa cache primeiro se offline
     },
     mutations: {
       retry: 1,

@@ -31,6 +31,12 @@ import {
   usePendenciaProducao,
   useInvalidateDashboard,
 } from "../hooks/useDashboardQueries";
+import { FilterBar } from "../components/FilterBarNew";
+import {
+  InteractiveLegend,
+  useSeriesVisibility,
+  LegendItem,
+} from "../components/InteractiveLegend";
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -142,6 +148,46 @@ export function ChartsScreen() {
       { value: 3, color: "#EC4899", text: "3%", label: "Outros" },
     ];
   }, [pagamentosData]);
+
+  // Legendas para a legenda interativa de serviços
+  const servicosLegendItems: LegendItem[] = useMemo(() => {
+    return pieChartData.map((item) => ({
+      key: item.label,
+      label: item.label,
+      color: item.color,
+      formattedValue: item.text,
+    }));
+  }, [pieChartData]);
+
+  // Hook de visibilidade para gráfico de serviços
+  const servicosVisibility = useSeriesVisibility(servicosLegendItems);
+
+  // Dados filtrados baseados na visibilidade
+  const filteredPieChartData = useMemo(() => {
+    return pieChartData.filter((item) =>
+      servicosVisibility.visibleKeys.includes(item.label)
+    );
+  }, [pieChartData, servicosVisibility.visibleKeys]);
+
+  // Legendas para pagamentos
+  const pagamentosLegendItems: LegendItem[] = useMemo(() => {
+    return pagamentosChartData.map((item) => ({
+      key: item.label,
+      label: item.label,
+      color: item.color,
+      formattedValue: item.text,
+    }));
+  }, [pagamentosChartData]);
+
+  // Hook de visibilidade para gráfico de pagamentos
+  const pagamentosVisibility = useSeriesVisibility(pagamentosLegendItems);
+
+  // Dados filtrados de pagamentos
+  const filteredPagamentosChartData = useMemo(() => {
+    return pagamentosChartData.filter((item) =>
+      pagamentosVisibility.visibleKeys.includes(item.label)
+    );
+  }, [pagamentosChartData, pagamentosVisibility.visibleKeys]);
 
   // Dados do gráfico de barras de pendência de produção
   const pendenciaChartData = useMemo(() => {
@@ -270,6 +316,9 @@ export function ChartsScreen() {
       style={[styles.container, { backgroundColor: colors.background }]}
       edges={["bottom"]}
     >
+      {/* Filtros Globais */}
+      <FilterBar />
+
       {/* Tabs */}
       <View style={[styles.tabsWrapper, { backgroundColor: colors.surface }]}>
         <ScrollView
@@ -568,7 +617,7 @@ export function ChartsScreen() {
               <>
                 <View style={styles.pieChartContainer}>
                   <PieChart
-                    data={pieChartData}
+                    data={filteredPieChartData}
                     donut
                     radius={100}
                     innerRadius={60}
@@ -600,34 +649,15 @@ export function ChartsScreen() {
                   />
                 </View>
 
-                {/* Legenda do Pizza */}
+                {/* Legenda Interativa do Pizza */}
                 <View style={styles.pieLegendContainer}>
-                  {pieChartData.map((item, index) => (
-                    <View key={index} style={styles.pieLegendItem}>
-                      <View
-                        style={[
-                          styles.legendDot,
-                          { backgroundColor: item.color },
-                        ]}
-                      />
-                      <Text
-                        style={[
-                          styles.pieLegendLabel,
-                          { color: colors.textPrimary },
-                        ]}
-                      >
-                        {item.label}
-                      </Text>
-                      <Text
-                        style={[
-                          styles.pieLegendValue,
-                          { color: colors.mutedText },
-                        ]}
-                      >
-                        {item.text}
-                      </Text>
-                    </View>
-                  ))}
+                  <InteractiveLegend
+                    items={servicosLegendItems}
+                    visibleKeys={servicosVisibility.visibleKeys}
+                    onToggle={servicosVisibility.toggle}
+                    layout="vertical"
+                    showValues={true}
+                  />
                 </View>
 
                 {/* Insight */}
@@ -675,7 +705,7 @@ export function ChartsScreen() {
               <>
                 <View style={styles.pieChartContainer}>
                   <PieChart
-                    data={pagamentosChartData}
+                    data={filteredPagamentosChartData}
                     donut
                     radius={100}
                     innerRadius={65}
@@ -700,34 +730,15 @@ export function ChartsScreen() {
                   />
                 </View>
 
-                {/* Legenda do Donut */}
+                {/* Legenda Interativa do Donut */}
                 <View style={styles.pieLegendContainer}>
-                  {pagamentosChartData.map((item, index) => (
-                    <View key={index} style={styles.pieLegendItem}>
-                      <View
-                        style={[
-                          styles.legendDot,
-                          { backgroundColor: item.color },
-                        ]}
-                      />
-                      <Text
-                        style={[
-                          styles.pieLegendLabel,
-                          { color: colors.textPrimary },
-                        ]}
-                      >
-                        {item.label}
-                      </Text>
-                      <Text
-                        style={[
-                          styles.pieLegendValue,
-                          { color: colors.mutedText },
-                        ]}
-                      >
-                        {item.text}
-                      </Text>
-                    </View>
-                  ))}
+                  <InteractiveLegend
+                    items={pagamentosLegendItems}
+                    visibleKeys={pagamentosVisibility.visibleKeys}
+                    onToggle={pagamentosVisibility.toggle}
+                    layout="vertical"
+                    showValues={true}
+                  />
                 </View>
 
                 {/* Insight */}

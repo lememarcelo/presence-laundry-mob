@@ -28,6 +28,8 @@ import {
   DadosMapaGeografico,
 } from "../api/dashboard.service";
 import { HeatmapData } from "@/models/dashboard.models";
+import { FilterBar } from "../components/FilterBarNew";
+import { BrasilMapSVG, UFData } from "../components/BrasilMapSVG";
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -89,6 +91,7 @@ export function HeatmapScreen() {
   const { colors, tokens } = useTheme();
   const { invalidateMapaTemporal, invalidateAll } = useInvalidateDashboard();
   const [activeMap, setActiveMap] = useState<MapaType>("temporal");
+  const [selectedUF, setSelectedUF] = useState<string | undefined>(undefined);
 
   // State para tooltip da célula selecionada
   const [tooltipCell, setTooltipCell] = useState<{
@@ -145,6 +148,16 @@ export function HeatmapScreen() {
     ];
   }, [mapaGeograficoAPI]);
 
+  // Dados para o mapa SVG do Brasil
+  const mapUFData = useMemo((): UFData[] => {
+    const maxFat = Math.max(...regioesSorted.map((r) => r.faturamento));
+    return regioesSorted.map((r) => ({
+      uf: r.uf,
+      valor: r.faturamento,
+      percentual: maxFat > 0 ? (r.faturamento / maxFat) * 100 : 0,
+    }));
+  }, [regioesSorted]);
+
   const totalFaturamento =
     mapaGeograficoAPI?.totalFaturamento ||
     regioesSorted.reduce((sum, r) => sum + r.faturamento, 0);
@@ -198,6 +211,9 @@ export function HeatmapScreen() {
       style={[styles.container, { backgroundColor: colors.background }]}
       edges={["bottom"]}
     >
+      {/* Filtros Globais */}
+      <FilterBar />
+
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -277,6 +293,21 @@ export function HeatmapScreen() {
                   Faturamento e presença por estado
                 </Text>
               </View>
+            </View>
+
+            {/* Mapa SVG do Brasil */}
+            <View style={styles.mapContainer}>
+              <BrasilMapSVG
+                data={mapUFData}
+                width={screenWidth - 64}
+                height={200}
+                onPressUF={(uf, _data) =>
+                  setSelectedUF(uf === selectedUF ? undefined : uf)
+                }
+                selectedUF={selectedUF}
+                minColor={colors.surface}
+                maxColor={colors.success}
+              />
             </View>
 
             {/* Lista de UFs */}
@@ -795,6 +826,12 @@ const styles = StyleSheet.create({
   mapTabText: {
     fontSize: 14,
     fontWeight: "500",
+  },
+  // Estilo para o mapa SVG do Brasil
+  mapContainer: {
+    alignItems: "center",
+    marginBottom: 16,
+    paddingVertical: 8,
   },
   // Estilos para lista de UFs
   geoLoadingContainer: {

@@ -26,6 +26,14 @@ import {
   getSemaforoStatus,
 } from "../components/SemaforoIndicator";
 import { KPISkeletonGrid } from "../components/SkeletonCard";
+import {
+  ComparativoLojaRedeCard,
+  formatadores,
+} from "../components/ComparativoLojaRedeCard";
+import {
+  SparklineChart,
+  generateMockSparklineData,
+} from "../components/SparklineChart";
 import { mockKPIs } from "../data/mock-data";
 import { KPICard as KPICardType } from "@/models/dashboard.models";
 import { DashboardKPIs } from "../api/dashboard.service";
@@ -157,7 +165,13 @@ function transformKPIsFromAPI(data: DashboardKPIs): KPICardType[] {
 }
 
 // Componente de Card de KPI
-function KPICardComponent({ data }: { data: KPICardType }) {
+function KPICardComponent({
+  data,
+  sparklineData,
+}: {
+  data: KPICardType;
+  sparklineData?: number[];
+}) {
   const { colors, tokens } = useTheme();
 
   const trendColor =
@@ -229,6 +243,20 @@ function KPICardComponent({ data }: { data: KPICardType }) {
         {data.formattedValue}
       </Text>
 
+      {/* Sparkline - tendência dos últimos 7 dias */}
+      {sparklineData && sparklineData.length > 0 && (
+        <View style={styles.sparklineContainer}>
+          <SparklineChart
+            data={sparklineData}
+            width={100}
+            height={24}
+            color={data.color}
+            showLastPoint={true}
+            filled={true}
+          />
+        </View>
+      )}
+
       <Text
         style={[
           styles.kpiTitle,
@@ -290,6 +318,86 @@ export function KPIsScreen() {
       projecaoMes: "R$ 120.000,00",
     };
   }, [metricas]);
+
+  // Dados do comparativo Loja x Média da Rede
+  const comparativoData = React.useMemo(() => {
+    if (metricas?.mediaRede) {
+      const mr = metricas.mediaRede;
+      return {
+        nomeLoja:
+          lojasSelecionadas.length > 0
+            ? `Loja ${lojasSelecionadas[0]}`
+            : "Sua Loja",
+        metricas: [
+          {
+            label: "Faturamento",
+            valorLoja: metricas.faturamento?.atual ?? 0,
+            valorRede: mr.faturamento ?? 0,
+            formatador: formatadores.currency,
+          },
+          {
+            label: "Ticket Médio",
+            valorLoja: metricas.tickets?.ticketMedio ?? 0,
+            valorRede: mr.ticketMedio ?? 0,
+            formatador: formatadores.currency,
+          },
+          {
+            label: "Peças",
+            valorLoja: metricas.pecas?.atual ?? 0,
+            valorRede: mr.pecas ?? 0,
+            formatador: formatadores.number,
+          },
+          {
+            label: "% Delivery",
+            valorLoja: metricas.delivery?.percentual ?? 0,
+            valorRede: mr.pctDelivery ?? 0,
+            formatador: formatadores.percent,
+          },
+        ],
+      };
+    }
+    // Mock fallback
+    return {
+      nomeLoja: "Loja Centro",
+      metricas: [
+        {
+          label: "Faturamento",
+          valorLoja: 87450,
+          valorRede: 72500,
+          formatador: formatadores.currency,
+        },
+        {
+          label: "Ticket Médio",
+          valorLoja: 45.5,
+          valorRede: 42.3,
+          formatador: formatadores.currency,
+        },
+        {
+          label: "Peças",
+          valorLoja: 1523,
+          valorRede: 1280,
+          formatador: formatadores.number,
+        },
+        {
+          label: "% Delivery",
+          valorLoja: 28.5,
+          valorRede: 22.0,
+          formatador: formatadores.percent,
+        },
+      ],
+    };
+  }, [metricas, lojasSelecionadas]);
+
+  // Gerar dados de sparkline para cada KPI (mock por enquanto)
+  const sparklineDataMap = React.useMemo(() => {
+    const map: Record<string, number[]> = {};
+    kpis.forEach((kpi) => {
+      // Gerar dados mock baseados no valor atual
+      const baseValue = typeof kpi.value === "number" ? kpi.value : 0;
+      map[kpi.id] = generateMockSparklineData(baseValue, 0.15, 7);
+    });
+    return map;
+  }, [kpis]);
 
   const onRefresh = React.useCallback(async () => {
     await invalidateAll();
@@ -383,9 +491,20 @@ export function KPIsScreen() {
         {/* Grid de KPIs */}
         <View style={styles.kpiGrid}>
           {kpis.map((kpi) => (
-            <KPICardComponent key={kpi.id} data={kpi} />
+            <KPICardComponent
+              key={kpi.id}
+              data={kpi}
+              sparklineData={sparklineDataMap[kpi.id]}
+            />
           ))}
         </View>
+
+        {/* Comparativo Loja x Rede */}
+        <ComparativoLojaRedeCard
+          nomeLoja={comparativoData.nomeLoja}
+          metricas={comparativoData.metricas}
+          isLoading={isFetching}
+        />
 
         {/* Resumo */}
         <View
@@ -525,6 +644,10 @@ const styles = StyleSheet.create({
   kpiValue: {
     fontWeight: "700",
     marginBottom: 4,
+  },
+  sparklineContainer: {
+    marginVertical: 6,
+    alignItems: "center",
   },
   kpiTitle: {
     fontWeight: "500",

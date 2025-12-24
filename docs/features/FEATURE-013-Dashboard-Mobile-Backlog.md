@@ -27,53 +27,53 @@
 | M1-G-004 | Implementar PeriodPresets (Hoje, Semana, Mês)    | ✅     | AI          | `PeriodPresets.tsx` + `PeriodPresetsInline`  |
 | M1-G-005 | Integrar componentes no FilterBar                | ✅     | AI          | `FilterBarNew.tsx` integra todos componentes |
 | M1-G-006 | Persistir filtros com AsyncStorage               | ✅     | AI          | Via zustand/middleware persist               |
-| M1-G-007 | Substituir FilterBar antigo pelo novo            | 🔲     | -           | Atualizar imports nas screens                |
+| M1-G-007 | Substituir FilterBar antigo pelo novo            | ✅     | AI          | FilterBarNew integrado em todas screens      |
 | M1-G-008 | Testar comportamento de filtros entre telas      | 🔲     | -           | Validar state global                         |
 
-**Progresso M1-G:** 6/8 (75%)
+**Progresso M1-G:** 7/8 (87%)
 
 ---
 
 ## Milestone 2: Melhorias de KPIs (M2-K)
 
-| ID       | Tarefa                                    | Status | Responsável | Notas                               |
-| -------- | ----------------------------------------- | ------ | ----------- | ----------------------------------- |
-| M2-K-001 | Implementar semáforos nos cards de KPI    | 🔲     | -           | Verde/Amarelo/Vermelho baseado em % |
-| M2-K-002 | Criar componente SkeletonCard             | 🔲     | -           | Loading elegante para cards         |
-| M2-K-003 | Adicionar tooltip/detail ao tocar em card | 🔲     | -           | Modal com breakdown do cálculo      |
-| M2-K-004 | Implementar card Comparativo Loja x Rede  | 🔲     | -           | Novo tipo de card                   |
-| M2-K-005 | Melhorar layout responsivo dos cards      | 🔲     | -           | Grid adaptativo para tablets        |
-| M2-K-006 | Adicionar mini-gráfico inline nos cards   | 🔲     | -           | Sparkline dos últimos 7 dias        |
+| ID       | Tarefa                                    | Status | Responsável | Notas                                  |
+| -------- | ----------------------------------------- | ------ | ----------- | -------------------------------------- |
+| M2-K-001 | Implementar semáforos nos cards de KPI    | ✅     | AI          | `SemaforoIndicator.tsx` com pulse anim |
+| M2-K-002 | Criar componente SkeletonCard             | ✅     | AI          | `SkeletonCard.tsx` com variantes       |
+| M2-K-003 | Adicionar tooltip/detail ao tocar em card | 🔲     | -           | Modal com breakdown do cálculo         |
+| M2-K-004 | Implementar card Comparativo Loja x Rede  | ✅     | AI          | ComparativoLojaRedeCard.tsx            |
+| M2-K-005 | Melhorar layout responsivo dos cards      | 🔲     | -           | Grid adaptativo para tablets           |
+| M2-K-006 | Adicionar mini-gráfico inline nos cards   | ✅     | AI          | SparklineChart.tsx com SVG             |
 
-**Progresso M2-K:** 0/6 (0%)
+**Progresso M2-K:** 4/6 (67%)
 
 ---
 
 ## Milestone 3: Melhorias de Gráficos (M3-C)
 
-| ID       | Tarefa                                      | Status | Responsável | Notas                         |
-| -------- | ------------------------------------------- | ------ | ----------- | ----------------------------- |
-| M3-C-001 | Implementar gráfico de pizza (Serviços)     | 🔲     | -           | DistribuicaoServicos endpoint |
-| M3-C-002 | Implementar gráfico donut (Pagamentos)      | 🔲     | -           | EvolucaoPagamentos endpoint   |
-| M3-C-003 | Implementar gráfico barras (Produção)       | 🔲     | -           | PendenciaProducao endpoint    |
-| M3-C-004 | Adicionar zoom/pinch em gráficos longos     | 🔲     | -           | Melhorar interação touch      |
-| M3-C-005 | Implementar legendas interativas            | 🔲     | -           | Toggle de séries              |
-| M3-C-006 | Adicionar animações de entrada nos gráficos | 🔲     | -           | UX polish                     |
+| ID       | Tarefa                                      | Status | Responsável | Notas                              |
+| -------- | ------------------------------------------- | ------ | ----------- | ---------------------------------- |
+| M3-C-001 | Implementar gráfico de pizza (Serviços)     | ✅     | AI          | PieChart em ChartsScreen           |
+| M3-C-002 | Implementar gráfico donut (Pagamentos)      | ✅     | AI          | PieChart donut em ChartsScreen     |
+| M3-C-003 | Implementar gráfico barras (Produção)       | ✅     | AI          | BarChart pendência em ChartsScreen |
+| M3-C-004 | Adicionar zoom/pinch em gráficos longos     | 🔲     | -           | Melhorar interação touch           |
+| M3-C-005 | Implementar legendas interativas            | ✅     | AI          | InteractiveLegend.tsx + hook       |
+| M3-C-006 | Adicionar animações de entrada nos gráficos | ✅     | AI          | Via gifted-charts animateOnLoad    |
 
-**Progresso M3-C:** 0/6 (0%)
+**Progresso M3-C:** 5/6 (83%)
 
 ---
 
 ## Milestone 4: Heatmap e Mapas (M4-H)
 
-| ID       | Tarefa                                     | Status | Responsável | Notas                       |
-| -------- | ------------------------------------------ | ------ | ----------- | --------------------------- |
-| M4-H-001 | Adicionar tooltip ao tocar em célula       | 🔲     | -           | Mostrar valor exato         |
-| M4-H-002 | Implementar mapa geográfico por UF (lista) | 🔲     | -           | Lista ordenada por região   |
-| M4-H-003 | Implementar mapa geográfico visual         | 🔲     | -           | SVG do Brasil com cores     |
-| M4-H-004 | Melhorar responsividade do grid heatmap    | 🔲     | -           | Ajustar tamanho das células |
+| ID       | Tarefa                                     | Status | Responsável | Notas                          |
+| -------- | ------------------------------------------ | ------ | ----------- | ------------------------------ |
+| M4-H-001 | Adicionar tooltip ao tocar em célula       | ✅     | AI          | `tooltipCell` state            |
+| M4-H-002 | Implementar mapa geográfico por UF (lista) | ✅     | AI          | Lista ordenada por faturamento |
+| M4-H-003 | Implementar mapa geográfico visual         | ✅     | AI          | BrasilMapSVG.tsx integrado     |
+| M4-H-004 | Melhorar responsividade do grid heatmap    | 🔲     | -           | Ajustar tamanho das células    |
 
-**Progresso M4-H:** 0/4 (0%)
+**Progresso M4-H:** 3/4 (75%)
 
 ---
 
@@ -81,26 +81,26 @@
 
 | ID       | Tarefa                                    | Status | Responsável | Notas                       |
 | -------- | ----------------------------------------- | ------ | ----------- | --------------------------- |
-| M5-R-001 | Destacar visualmente a loja do usuário    | 🔲     | -           | Highlight na lista          |
+| M5-R-001 | Destacar visualmente a loja do usuário    | ✅     | AI          | Highlight com accent border |
 | M5-R-002 | Adicionar filtro por região/categoria     | 🔲     | -           | Opcional para redes grandes |
 | M5-R-003 | Implementar ordenação por outras métricas | 🔲     | -           | Tickets, peças, etc         |
 | M5-R-004 | Adicionar animações de posição no ranking | 🔲     | -           | Setas up/down               |
 
-**Progresso M5-R:** 0/4 (0%)
+**Progresso M5-R:** 1/4 (25%)
 
 ---
 
 ## Milestone 6: UX/UI Avançado (M6-U)
 
-| ID       | Tarefa                                     | Status | Responsável | Notas                  |
-| -------- | ------------------------------------------ | ------ | ----------- | ---------------------- |
-| M6-U-001 | Garantir touch targets ≥ 44pt              | 🔲     | -           | Acessibilidade         |
-| M6-U-002 | Adicionar labels de acessibilidade         | 🔲     | -           | VoiceOver/TalkBack     |
-| M6-U-003 | Implementar modo offline com cache         | 🔲     | -           | Mostrar dados em cache |
-| M6-U-004 | Otimizar tempo de carregamento inicial     | 🔲     | -           | Target < 3s            |
-| M6-U-005 | Adicionar onboarding/tutorial primeira vez | 🔲     | -           | Tour pelos recursos    |
+| ID       | Tarefa                                     | Status | Responsável | Notas                            |
+| -------- | ------------------------------------------ | ------ | ----------- | -------------------------------- |
+| M6-U-001 | Garantir touch targets ≥ 44pt              | ✅     | AI          | minHeight: 44 nos componentes    |
+| M6-U-002 | Adicionar labels de acessibilidade         | ✅     | AI          | accessibilityRole/Label/Hint     |
+| M6-U-003 | Implementar modo offline com cache         | ✅     | AI          | useOfflineStatus + OfflineBanner |
+| M6-U-004 | Otimizar tempo de carregamento inicial     | 🔲     | -           | Target < 3s                      |
+| M6-U-005 | Adicionar onboarding/tutorial primeira vez | 🔲     | -           | Tour pelos recursos              |
 
-**Progresso M6-U:** 0/5 (0%)
+**Progresso M6-U:** 3/5 (60%)
 
 ---
 
@@ -120,14 +120,14 @@
 
 | Milestone           | Total  | Concluído | Progresso |
 | ------------------- | ------ | --------- | --------- |
-| M1: Filtros Globais | 8      | 6         | 75%       |
-| M2: KPIs            | 6      | 0         | 0%        |
-| M3: Gráficos        | 6      | 0         | 0%        |
-| M4: Heatmap/Mapas   | 4      | 0         | 0%        |
-| M5: Ranking         | 4      | 0         | 0%        |
-| M6: UX/UI           | 5      | 0         | 0%        |
+| M1: Filtros Globais | 8      | 7         | 87%       |
+| M2: KPIs            | 6      | 4         | 67%       |
+| M3: Gráficos        | 6      | 5         | 83%       |
+| M4: Heatmap/Mapas   | 4      | 3         | 75%       |
+| M5: Ranking         | 4      | 1         | 25%       |
+| M6: UX/UI           | 5      | 3         | 60%       |
 | M7: Autenticação    | 3      | 0         | 0%        |
-| **Total**           | **36** | **6**     | **17%**   |
+| **Total**           | **36** | **23**    | **64%**   |
 
 ---
 
@@ -160,11 +160,25 @@ src/features/dashboard/
 
 ---
 
-## Próximos Passos
+## Próximos Passos Recomendados
 
-1. **M1-G-007**: Substituir imports do FilterBar antigo pelo FilterBarNew nas screens
-2. **M1-G-008**: Testar navegação entre telas mantendo estado dos filtros
-3. **M2-K-001**: Iniciar implementação de semáforos nos KPIs
+### Alta Prioridade
+
+1. **M1-G-008**: Testar comportamento de filtros entre telas
+2. **M2-K-003**: Tooltip/detail ao tocar em KPI card (modal com breakdown)
+3. **M7-A-001**: Tratamento de erro 401 (redirect para login)
+
+### Média Prioridade
+
+4. **M2-K-005**: Layout responsivo dos cards (grid adaptativo para tablets)
+5. **M3-C-004**: Zoom/pinch em gráficos longos
+6. **M4-H-004**: Responsividade do grid heatmap
+
+### Baixa Prioridade
+
+7. **M5-R-002**: Filtro por região/categoria no ranking
+8. **M5-R-003**: Ordenação por outras métricas no ranking
+9. **M6-U-005**: Onboarding/tutorial primeira vez
 
 ---
 
@@ -176,3 +190,9 @@ src/features/dashboard/
 | 2025-12-24 | M1-G-001 a M1-G-006 concluídos (componentes de filtros)              |
 | 2025-12-24 | Atualização de endpoints para Presence Dashboard API (`/api/v1/...`) |
 | 2025-12-24 | Correção de baseUrl no SessionStore (porta 8003)                     |
+| 2025-12-24 | M1-G-007 concluído (FilterBarNew em todas as screens)                |
+| 2025-12-24 | M2-K-004 concluído (ComparativoLojaRedeCard)                         |
+| 2025-12-24 | M2-K-006 concluído (SparklineChart nos KPI cards)                    |
+| 2025-12-24 | M3-C-005 concluído (InteractiveLegend com toggle)                    |
+| 2025-12-24 | M4-H-003 concluído (BrasilMapSVG integrado)                          |
+| 2025-12-24 | M6-U-003 concluído (useOfflineStatus + OfflineBanner)                |
