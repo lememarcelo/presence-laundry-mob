@@ -25,7 +25,7 @@ export function LoginScreen() {
 
   // Estado do formulário
   const [apiBaseUrl, setApiBaseUrl] = useState(
-    "http://192.168.0.106:8002/datasnap/rest"
+    "http://192.168.0.136:8002/datasnap/rest"
   );
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");

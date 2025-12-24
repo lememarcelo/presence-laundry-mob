@@ -374,6 +374,7 @@ export async function getDistribuicaoServicos(
 /**
  * GET /TSMDashLaundry/EvolucaoPagamentos/{lojas}/{dtIni}/{dtFim}
  * Evolução de pagamentos por modalidade
+ * Backend retorna: {data: EvolucaoPagamentos[], _source: 'database'|'cache'}
  */
 export async function getEvolucaoPagamentos(
     lojas: string[],
@@ -387,8 +388,9 @@ export async function getEvolucaoPagamentos(
     const response = await apiClient.get(
         `${BASE_PATH}/EvolucaoPagamentos/${lojasParam}/${dtIni}/${dtFim}`
     );
-    // Backend retorna { value: [...], Count: N }
-    return response.data?.value ?? response.data ?? [];
+    // Backend retorna { data: [...], _source: '...' }
+    const wrapper = response.data as { data: EvolucaoPagamentos[] };
+    return wrapper.data ?? response.data?.value ?? response.data ?? [];
 }
 
 /**

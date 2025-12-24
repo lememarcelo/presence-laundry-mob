@@ -36,7 +36,7 @@ export const useSessionStore = create<SessionState>((set) => ({
     isLoading: false,
     error: null,
     // IMPORTANTE: Sempre usar este IP para desenvolvimento
-    baseUrl: 'http://192.168.0.106:8002/datasnap/rest',
+    baseUrl: 'http://192.168.0.136:8002/datasnap/rest',
     username: 'presence',
     password: '1',
 
