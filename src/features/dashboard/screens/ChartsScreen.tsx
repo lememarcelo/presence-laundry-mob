@@ -37,10 +37,13 @@ import {
   useSeriesVisibility,
   LegendItem,
 } from "../components/InteractiveLegend";
+import { ZoomableChartWrapper } from "../components/ZoomableChartWrapper";
 
 const screenWidth = Dimensions.get("window").width;
 // Largura do gráfico = screenWidth - padding (32) - margins do card (16*2) - espaço do eixo Y (50)
 const chartWidth = screenWidth - 32 - 32 - 50;
+// Largura expandida para scroll horizontal (1.5x da tela)
+const expandedChartWidth = screenWidth * 1.5;
 
 type ChartType =
   | "faturamento"
@@ -453,26 +456,35 @@ export function ChartsScreen() {
                 Faturamento Mensal
               </Text>
               <Text style={[styles.chartSubtitle, { color: colors.mutedText }]}>
-                Acumulado 2025 (R$ mil)
+                Acumulado 2025 (R$ mil) - Deslize para ver todos
               </Text>
 
-              <View style={styles.chartWrapper}>
+              <ZoomableChartWrapper
+                contentWidth={expandedChartWidth}
+                height={250}
+              >
                 <BarChart
                   data={faturamentoMensalData}
-                  width={chartWidth}
+                  width={expandedChartWidth - 50}
                   height={200}
-                  barWidth={20}
+                  barWidth={28}
+                  spacing={16}
                   barBorderRadius={4}
                   xAxisColor={colors.cardBorder}
                   yAxisColor={colors.cardBorder}
-                  xAxisLabelTextStyle={{ color: colors.mutedText, fontSize: 9 }}
+                  xAxisLabelTextStyle={{
+                    color: colors.mutedText,
+                    fontSize: 10,
+                  }}
                   yAxisTextStyle={{ color: colors.mutedText, fontSize: 10 }}
                   rulesColor={colors.cardBorder}
                   rulesType="dashed"
                   noOfSections={4}
                   isAnimated
+                  xAxisLabelsVerticalShift={5}
+                  labelsExtraHeight={30}
                 />
-              </View>
+              </ZoomableChartWrapper>
 
               {/* Resumo Anual */}
               <View style={styles.summaryRow}>

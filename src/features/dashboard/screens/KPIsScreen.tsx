@@ -3,7 +3,7 @@
  * Exibe cards com métricas de faturamento, tickets, peças, clientes, etc.
  */
 
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
   RefreshControl,
   ActivityIndicator,
   TouchableOpacity,
+  Animated,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -36,6 +37,7 @@ import {
   generateMockSparklineData,
 } from "../components/SparklineChart";
 import { KPIDetailModal, KPIDetailData } from "../components/KPIDetailModal";
+import { OnboardingTour } from "../components/OnboardingTour";
 import { mockKPIs } from "../data/mock-data";
 import { KPICard as KPICardType } from "@/models/dashboard.models";
 import { DashboardKPIs } from "../api/dashboard.service";
@@ -305,17 +307,64 @@ function transformKPIsFromAPI(data: DashboardKPIs): KPICardType[] {
   return kpis;
 }
 
-// Componente de Card de KPI
+// Componente animado de Card de KPI
+const AnimatedTouchable = Animated.createAnimatedComponent(TouchableOpacity);
+
 function KPICardComponent({
   data,
   sparklineData,
   onPress,
+  index = 0,
+  animationKey = 0,
 }: {
   data: KPICardType;
   sparklineData?: number[];
   onPress?: () => void;
+  index?: number;
+  animationKey?: number;
 }) {
   const { colors, tokens } = useTheme();
+
+  // Animação de entrada stagger
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(0.85)).current;
+  const slideAnim = useRef(new Animated.Value(50)).current;
+
+  useEffect(() => {
+    // Reset antes de animar
+    fadeAnim.setValue(0);
+    scaleAnim.setValue(0.85);
+    slideAnim.setValue(50);
+
+    const delay = index * 100; // 100ms entre cada card
+
+    const animation = Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 400,
+        delay,
+        useNativeDriver: true,
+      }),
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        tension: 50,
+        friction: 8,
+        delay,
+        useNativeDriver: true,
+      }),
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        tension: 50,
+        friction: 8,
+        delay,
+        useNativeDriver: true,
+      }),
+    ]);
+
+    animation.start();
+
+    return () => animation.stop();
+  }, [animationKey]);
 
   const trendColor =
     data.trend === "up"
@@ -335,12 +384,14 @@ function KPICardComponent({
   const semaforoStatus = getSemaforoStatus(data.percentChange ?? 0);
 
   return (
-    <TouchableOpacity
+    <AnimatedTouchable
       style={[
         styles.kpiCard,
         {
           backgroundColor: colors.surface,
           borderColor: colors.cardBorder,
+          opacity: fadeAnim,
+          transform: [{ translateY: slideAnim }, { scale: scaleAnim }],
         },
       ]}
       onPress={onPress}
@@ -413,7 +464,7 @@ function KPICardComponent({
       >
         {data.title}
       </Text>
-    </TouchableOpacity>
+    </AnimatedTouchable>
   );
 }
 
@@ -425,6 +476,7 @@ export function KPIsScreen() {
   // M2-K-003: State para modal de detalhes do KPI
   const [selectedKPI, setSelectedKPI] = useState<KPIDetailData | null>(null);
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
+  const [animationKey, setAnimationKey] = useState(0);
 
   // Query para métricas consolidadas
   const {
@@ -442,6 +494,11 @@ export function KPIsScreen() {
       return transformKPIsFromAPI(metricas);
     }
     return mockKPIs; // Fallback para mock data
+  }, [metricas]);
+
+  // Trigger animação quando dados mudam
+  useEffect(() => {
+    setAnimationKey((prev) => prev + 1);
   }, [metricas]);
 
   // Resumo calculado a partir dos dados
@@ -653,12 +710,14 @@ export function KPIsScreen() {
       >
         {/* Grid de KPIs */}
         <View style={styles.kpiGrid}>
-          {kpis.map((kpi) => (
+          {kpis.map((kpi, index) => (
             <KPICardComponent
-              key={kpi.id}
+              key={`${kpi.id}-${animationKey}`}
               data={kpi}
               sparklineData={sparklineDataMap[kpi.id]}
               onPress={() => handleKPIPress(kpi)}
+              index={index}
+              animationKey={animationKey}
             />
           ))}
         </View>
@@ -747,6 +806,9 @@ export function KPIsScreen() {
         }}
         data={selectedKPI}
       />
+
+      {/* M6-U-005: Onboarding/Tutorial de primeira utilização */}
+      <OnboardingTour />
     </View>
   );
 }

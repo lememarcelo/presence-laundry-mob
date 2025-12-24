@@ -178,7 +178,18 @@ export function HeatmapScreen() {
     refetchGeo,
   ]);
 
-  const cellSize = (screenWidth - 80) / (heatmapData.xLabels?.length || 7);
+  // Cálculo responsivo do tamanho das células
+  const numColumns = heatmapData.xLabels?.length || 7;
+  const isTablet = screenWidth >= 768;
+  const padding = isTablet ? 100 : 80;
+  const minCellSize = 32;
+  const maxCellSize = isTablet ? 60 : 45;
+  const calculatedCellSize = (screenWidth - padding) / numColumns;
+  const cellSize = Math.max(
+    minCellSize,
+    Math.min(maxCellSize, calculatedCellSize)
+  );
+  const cellHeight = cellSize * 0.85;
 
   const mapTabs = [
     { key: "temporal" as MapaType, label: "Temporal", icon: "calendar-clock" },
@@ -490,7 +501,7 @@ export function HeatmapScreen() {
                             styles.heatCell,
                             {
                               width: cellSize,
-                              height: cellSize * 0.8,
+                              height: cellHeight,
                               backgroundColor: getHeatColor(
                                 value,
                                 heatmapData.colorScale

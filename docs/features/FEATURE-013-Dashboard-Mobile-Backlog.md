@@ -51,16 +51,16 @@
 
 ## Milestone 3: Melhorias de Gráficos (M3-C)
 
-| ID       | Tarefa                                      | Status | Responsável | Notas                              |
-| -------- | ------------------------------------------- | ------ | ----------- | ---------------------------------- |
-| M3-C-001 | Implementar gráfico de pizza (Serviços)     | ✅     | AI          | PieChart em ChartsScreen           |
-| M3-C-002 | Implementar gráfico donut (Pagamentos)      | ✅     | AI          | PieChart donut em ChartsScreen     |
-| M3-C-003 | Implementar gráfico barras (Produção)       | ✅     | AI          | BarChart pendência em ChartsScreen |
-| M3-C-004 | Adicionar zoom/pinch em gráficos longos     | 🔲     | -           | Melhorar interação touch           |
-| M3-C-005 | Implementar legendas interativas            | ✅     | AI          | InteractiveLegend.tsx + hook       |
-| M3-C-006 | Adicionar animações de entrada nos gráficos | ✅     | AI          | Via gifted-charts animateOnLoad    |
+| ID       | Tarefa                                      | Status | Responsável | Notas                               |
+| -------- | ------------------------------------------- | ------ | ----------- | ----------------------------------- |
+| M3-C-001 | Implementar gráfico de pizza (Serviços)     | ✅     | AI          | PieChart em ChartsScreen            |
+| M3-C-002 | Implementar gráfico donut (Pagamentos)      | ✅     | AI          | PieChart donut em ChartsScreen      |
+| M3-C-003 | Implementar gráfico barras (Produção)       | ✅     | AI          | BarChart pendência em ChartsScreen  |
+| M3-C-004 | Adicionar zoom/pinch em gráficos longos     | ✅     | AI          | ZoomableChartWrapper + scroll horiz |
+| M3-C-005 | Implementar legendas interativas            | ✅     | AI          | InteractiveLegend.tsx + hook        |
+| M3-C-006 | Adicionar animações de entrada nos gráficos | ✅     | AI          | Via gifted-charts animateOnLoad     |
 
-**Progresso M3-C:** 5/6 (83%)
+**Progresso M3-C:** 6/6 (100%)
 
 ---
 
@@ -71,22 +71,22 @@
 | M4-H-001 | Adicionar tooltip ao tocar em célula       | ✅     | AI          | `tooltipCell` state            |
 | M4-H-002 | Implementar mapa geográfico por UF (lista) | ✅     | AI          | Lista ordenada por faturamento |
 | M4-H-003 | Implementar mapa geográfico visual         | ✅     | AI          | BrasilMapSVG.tsx integrado     |
-| M4-H-004 | Melhorar responsividade do grid heatmap    | 🔲     | -           | Ajustar tamanho das células    |
+| M4-H-004 | Melhorar responsividade do grid heatmap    | ✅     | AI          | isTablet + min/max cellSize    |
 
-**Progresso M4-H:** 3/4 (75%)
+**Progresso M4-H:** 4/4 (100%)
 
 ---
 
 ## Milestone 5: Ranking (M5-R)
 
-| ID       | Tarefa                                    | Status | Responsável | Notas                       |
-| -------- | ----------------------------------------- | ------ | ----------- | --------------------------- |
-| M5-R-001 | Destacar visualmente a loja do usuário    | ✅     | AI          | Highlight com accent border |
-| M5-R-002 | Adicionar filtro por região/categoria     | 🔲     | -           | Opcional para redes grandes |
-| M5-R-003 | Implementar ordenação por outras métricas | 🔲     | -           | Tickets, peças, etc         |
-| M5-R-004 | Adicionar animações de posição no ranking | 🔲     | -           | Setas up/down               |
+| ID       | Tarefa                                    | Status | Responsável | Notas                              |
+| -------- | ----------------------------------------- | ------ | ----------- | ---------------------------------- |
+| M5-R-001 | Destacar visualmente a loja do usuário    | ✅     | AI          | Highlight com accent border        |
+| M5-R-002 | Adicionar filtro por região/categoria     | ✅     | AI          | Chips de região com filtro local   |
+| M5-R-003 | Implementar ordenação por outras métricas | ✅     | AI          | Sort by Faturamento/Tickets/Peças  |
+| M5-R-004 | Adicionar animações de posição no ranking | ✅     | AI          | Stagger anim + position indicators |
 
-**Progresso M5-R:** 1/4 (25%)
+**Progresso M5-R:** 4/4 (100%)
 
 ---
 
@@ -98,9 +98,9 @@
 | M6-U-002 | Adicionar labels de acessibilidade         | ✅     | AI          | accessibilityRole/Label/Hint     |
 | M6-U-003 | Implementar modo offline com cache         | ✅     | AI          | useOfflineStatus + OfflineBanner |
 | M6-U-004 | Otimizar tempo de carregamento inicial     | 🔲     | -           | Target < 3s                      |
-| M6-U-005 | Adicionar onboarding/tutorial primeira vez | 🔲     | -           | Tour pelos recursos              |
+| M6-U-005 | Adicionar onboarding/tutorial primeira vez | ✅     | AI          | OnboardingTour.tsx 6 steps       |
 
-**Progresso M6-U:** 3/5 (60%)
+**Progresso M6-U:** 4/5 (80%)
 
 ---
 
@@ -122,12 +122,12 @@
 | ------------------- | ------ | --------- | --------- |
 | M1: Filtros Globais | 8      | 8         | 100%      |
 | M2: KPIs            | 6      | 5         | 83%       |
-| M3: Gráficos        | 6      | 5         | 83%       |
-| M4: Heatmap/Mapas   | 4      | 3         | 75%       |
-| M5: Ranking         | 4      | 1         | 25%       |
-| M6: UX/UI           | 5      | 3         | 60%       |
+| M3: Gráficos        | 6      | 6         | 100%      |
+| M4: Heatmap/Mapas   | 4      | 4         | 100%      |
+| M5: Ranking         | 4      | 4         | 100%      |
+| M6: UX/UI           | 5      | 4         | 80%       |
 | M7: Autenticação    | 3      | 1         | 33%       |
-| **Total**           | **36** | **26**    | **72%**   |
+| **Total**           | **36** | **32**    | **89%**   |
 
 ---
 
