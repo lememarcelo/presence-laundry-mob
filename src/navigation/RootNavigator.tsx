@@ -1,27 +1,59 @@
 /**
  * Root Navigator - Navegador raiz da aplicação
  * Decide entre AuthStack (não autenticado) e MainTabs (autenticado)
+ * M6-U-004: Prefetch de dados críticos após autenticação
  */
 
-import React, { useEffect } from "react";
+import React, { useEffect, useCallback } from "react";
+import { View, ActivityIndicator } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { RootStackParamList } from "./types";
 import { AuthStack } from "./AuthStack";
 import { MainTabs } from "./MainTabs";
-import { useSessionStore } from "@/features/auth/stores/useSessionStore";
+import { useSessionStore } from "@/features/auth/stores/session.store";
 import { useTheme } from "@/shared/theme/ThemeProvider";
+import { usePrefetchDashboard } from "@/features/dashboard/hooks/useDashboardQueries";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export function RootNavigator() {
-  const { isAuthenticated, loadCredentials } = useSessionStore();
-  const { tokens } = useTheme();
+  const { isAuthenticated, loadStoredCredentials, isLoading } =
+    useSessionStore();
+  const { tokens, colors } = useTheme();
+  const { prefetchCriticalData } = usePrefetchDashboard();
 
   // Carrega credenciais ao iniciar o app
   useEffect(() => {
-    loadCredentials();
-  }, [loadCredentials]);
+    loadStoredCredentials();
+  }, [loadStoredCredentials]);
+
+  // M6-U-004: Prefetch dados críticos quando autenticado
+  useEffect(() => {
+    if (isAuthenticated && !isLoading) {
+      // Prefetch em background após pequeno delay para não bloquear UI
+      const timer = setTimeout(() => {
+        prefetchCriticalData();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [isAuthenticated, isLoading, prefetchCriticalData]);
+
+  // Mostra loading enquanto verifica credenciais
+  if (isLoading) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          backgroundColor: tokens.palette.background,
+        }}
+      >
+        <ActivityIndicator size="large" color={tokens.palette.accent} />
+      </View>
+    );
+  }
 
   return (
     <NavigationContainer

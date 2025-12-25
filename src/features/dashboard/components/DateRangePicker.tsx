@@ -527,6 +527,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     maxHeight: SCREEN_HEIGHT * 0.85,
+    minHeight: SCREEN_HEIGHT * 0.6,
   },
   modalHeader: {
     flexDirection: "row",
@@ -551,7 +552,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   scrollContent: {
-    flex: 1,
+    flexGrow: 1,
+    flexShrink: 1,
   },
   presetsSection: {
     padding: 16,

@@ -42,8 +42,8 @@ import { ZoomableChartWrapper } from "../components/ZoomableChartWrapper";
 const screenWidth = Dimensions.get("window").width;
 // Largura do gráfico = screenWidth - padding (32) - margins do card (16*2) - espaço do eixo Y (50)
 const chartWidth = screenWidth - 32 - 32 - 50;
-// Largura expandida para scroll horizontal (1.5x da tela)
-const expandedChartWidth = screenWidth * 1.5;
+// Largura expandida para scroll horizontal
+const expandedChartWidth = screenWidth * 1.55;
 
 type ChartType =
   | "faturamento"

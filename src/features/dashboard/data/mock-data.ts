@@ -62,7 +62,7 @@ export const mockKPIs: KPICard[] = [
     },
     {
         id: "os-abertas",
-        title: "OS em Aberto",
+        title: "ROLs em Aberto",
         value: 234,
         formattedValue: "234",
         previousValue: 198,

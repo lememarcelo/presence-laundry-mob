@@ -5,6 +5,7 @@
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useFiltersStore } from "../stores/useFiltersStore";
+import { useSessionStore } from "@features/auth/stores/session.store";
 import {
     getLojas,
     getMetricasConsolidadas,
@@ -120,18 +121,24 @@ export const dashboardKeys = {
  * Lista de lojas disponíveis para seleção
  */
 export function useLojas() {
+    const isAuthenticated = useSessionStore((state) => state.isAuthenticated);
+
     const query = useQuery({
         queryKey: dashboardKeys.lojas(),
         queryFn: getLojas,
         staleTime: 1000 * 60 * 30, // 30 minutos - lojas mudam raramente
+        enabled: isAuthenticated, // Só executa se estiver autenticado
     });
 
-    console.log('[useLojas] Status:', {
-        isLoading: query.isLoading,
-        isError: query.isError,
-        dataLength: query.data?.length,
-        error: query.error
-    });
+    if (__DEV__) {
+        console.log('[useLojas] Status:', {
+            isLoading: query.isLoading,
+            isError: query.isError,
+            dataLength: query.data?.length,
+            error: query.error,
+            enabled: isAuthenticated,
+        });
+    }
 
     return query;
 }
@@ -141,12 +148,16 @@ export function useLojas() {
  */
 export function useMetricasConsolidadas() {
     const { dataInicio, dataFim, lojasSelecionadas } = useFiltersStore();
+    const isAuthenticated = useSessionStore((state) => state.isAuthenticated);
 
-    console.log('[useMetricasConsolidadas] Filters:', {
-        dataInicio: dataInicio?.toISOString(),
-        dataFim: dataFim?.toISOString(),
-        lojasSelecionadas
-    });
+    if (__DEV__) {
+        console.log('[useMetricasConsolidadas] Filters:', {
+            dataInicio: dataInicio?.toISOString(),
+            dataFim: dataFim?.toISOString(),
+            lojasSelecionadas,
+            enabled: isAuthenticated // Removida condição de lojas - vazio = todas
+        });
+    }
 
     return useQuery({
         queryKey: dashboardKeys.metricas(lojasSelecionadas, dataInicio, dataFim),
@@ -154,6 +165,7 @@ export function useMetricasConsolidadas() {
             getMetricasConsolidadas(lojasSelecionadas, dataInicio, dataFim),
         staleTime: 1000 * 60 * 5, // 5 minutos
         retry: 2,
+        enabled: isAuthenticated, // Vazio = todas as lojas (tratado no service)
     });
 }
 
@@ -187,6 +199,7 @@ export function useFaturamentoDiario(mes?: number, ano?: number) {
  */
 export function useFaturamentoMensal(ano?: number) {
     const { lojasSelecionadas } = useFiltersStore();
+    const isAuthenticated = useSessionStore((state) => state.isAuthenticated);
     const anoParam = ano ?? new Date().getFullYear();
 
     return useQuery({
@@ -194,6 +207,7 @@ export function useFaturamentoMensal(ano?: number) {
         queryFn: () => getFaturamentoMensal(lojasSelecionadas, anoParam),
         staleTime: 1000 * 60 * 5,
         retry: 2,
+        enabled: isAuthenticated, // Vazio = todas as lojas
     });
 }
 
@@ -278,12 +292,14 @@ export function usePendenciaProducao() {
  */
 export function useMapaTemporal() {
     const { dataInicio, dataFim, lojasSelecionadas } = useFiltersStore();
+    const isAuthenticated = useSessionStore((state) => state.isAuthenticated);
 
     return useQuery({
         queryKey: dashboardKeys.mapaTemporal(lojasSelecionadas, dataInicio, dataFim),
         queryFn: () => getMapaTemporal(lojasSelecionadas, dataInicio, dataFim),
         staleTime: 1000 * 60 * 5,
         retry: 2,
+        enabled: isAuthenticated, // Vazio = todas as lojas
     });
 }
 
@@ -332,12 +348,14 @@ export function useMapaGeografico() {
  */
 export function useRankingLojas() {
     const { dataInicio, dataFim } = useFiltersStore();
+    const isAuthenticated = useSessionStore((state) => state.isAuthenticated);
 
     return useQuery({
         queryKey: dashboardKeys.rankingLojas(dataInicio, dataFim),
         queryFn: () => getRankingLojas(dataInicio, dataFim),
         staleTime: 1000 * 60 * 5,
         retry: 2,
+        enabled: isAuthenticated,
     });
 }
 
@@ -443,4 +461,61 @@ export function useInvalidateDashboard() {
             });
         },
     };
+}
+
+/**
+ * M6-U-004: Hook para prefetch de dados críticos do dashboard
+ * Carrega dados em background para melhorar tempo de carregamento inicial
+ */
+export function usePrefetchDashboard() {
+    const queryClient = useQueryClient();
+    const { dataInicio, dataFim, lojasSelecionadas } = useFiltersStore();
+
+    const prefetchCriticalData = async () => {
+        if (lojasSelecionadas.length === 0) return;
+
+        const prefetchPromises: Promise<void>[] = [];
+
+        // Prefetch KPIs (mais importante)
+        prefetchPromises.push(
+            queryClient.prefetchQuery({
+                queryKey: dashboardKeys.metricas(lojasSelecionadas, dataInicio, dataFim),
+                queryFn: () => getMetricasConsolidadas(lojasSelecionadas, dataInicio, dataFim),
+                staleTime: 1000 * 60 * 5,
+            })
+        );
+
+        // Prefetch Ranking (segunda tela mais usada)
+        prefetchPromises.push(
+            queryClient.prefetchQuery({
+                queryKey: dashboardKeys.rankingLojas(dataInicio, dataFim),
+                queryFn: () => getRankingLojas(dataInicio, dataFim),
+                staleTime: 1000 * 60 * 5,
+            })
+        );
+
+        // Prefetch lojas
+        prefetchPromises.push(
+            queryClient.prefetchQuery({
+                queryKey: dashboardKeys.lojas(),
+                queryFn: getLojas,
+                staleTime: 1000 * 60 * 30,
+            })
+        );
+
+        // Executa todos em paralelo (fail-fast é ok, dados serão carregados on-demand)
+        try {
+            await Promise.allSettled(prefetchPromises);
+            if (__DEV__) {
+                console.log('[usePrefetchDashboard] Prefetch concluído');
+            }
+        } catch (error) {
+            // Silently fail - dados serão carregados on-demand
+            if (__DEV__) {
+                console.log('[usePrefetchDashboard] Prefetch parcialmente falhou:', error);
+            }
+        }
+    };
+
+    return { prefetchCriticalData };
 }

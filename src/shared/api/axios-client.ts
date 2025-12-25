@@ -4,7 +4,7 @@
  */
 
 import axios, { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
-import { useSessionStore } from '@/features/auth/stores/useSessionStore';
+import { getSessionCredentials, useSessionStore } from '@/features/auth/stores/session.store';
 
 /**
  * Instância principal do Axios
@@ -23,23 +23,29 @@ export const apiClient: AxiosInstance = axios.create({
  */
 apiClient.interceptors.request.use(
     (config: InternalAxiosRequestConfig) => {
-        const { baseUrl, username, password } = useSessionStore.getState();
+        const credentials = getSessionCredentials();
+
+        if (!credentials) {
+            // Rejeita requisição se não houver credenciais
+            if (__DEV__) {
+                console.warn('[API] Requisição bloqueada - credenciais não disponíveis');
+            }
+            return Promise.reject(new Error('Credenciais não disponíveis'));
+        }
 
         // Define a baseURL dinamicamente
-        if (baseUrl) {
-            config.baseURL = baseUrl;
-        }
+        config.baseURL = credentials.apiBaseUrl;
 
-        // Adiciona Basic Auth se credenciais estiverem disponíveis
-        if (username && password) {
-            const credentials = `${username}:${password}`;
-            const encodedCredentials = btoa(credentials);
-            config.headers.Authorization = `Basic ${encodedCredentials}`;
-        }
+        // Adiciona Basic Auth
+        const authCredentials = `${credentials.username}:${credentials.password}`;
+        const encodedCredentials = btoa(authCredentials);
+        config.headers.Authorization = `Basic ${encodedCredentials}`;
 
         // Log da URL completa
-        const fullUrl = `${config.baseURL}${config.url}`;
-        console.log('[Axios Request]', config.method?.toUpperCase(), fullUrl);
+        if (__DEV__) {
+            const fullUrl = `${config.baseURL}${config.url}`;
+            console.log('[API]', config.method?.toUpperCase(), fullUrl);
+        }
 
         return config;
     },
@@ -54,17 +60,18 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
     (response) => response,
     (error) => {
-        console.log('[Axios] Error details:', {
-            message: error.message,
-            code: error.code,
-            url: error.config?.url,
-            status: error.response?.status,
-        });
+        if (__DEV__) {
+            console.log('[API] Error details:', {
+                message: error.message,
+                code: error.code,
+                url: error.config?.url,
+                status: error.response?.status,
+            });
+        }
 
         // Erros de autenticação (401)
         if (error.response?.status === 401) {
-            const { logout } = useSessionStore.getState();
-            logout();
+            useSessionStore.getState().clearCredentials();
             return Promise.reject(new Error('Sessão expirada. Faça login novamente.'));
         }
 

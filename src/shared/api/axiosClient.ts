@@ -40,20 +40,26 @@ export function getAxiosInstance(): AxiosInstance {
       (config: InternalAxiosRequestConfig) => {
         const credentials = getSessionCredentials();
 
-        if (credentials) {
-          // Define a URL base dinamicamente
-          config.baseURL = credentials.apiBaseUrl;
-
-          // Adiciona autenticação Basic
-          config.auth = {
-            username: credentials.username,
-            password: credentials.password,
-          };
+        if (!credentials) {
+          // Rejeita requisição se não houver credenciais
+          if (__DEV__) {
+            console.warn('[API] Requisição bloqueada - credenciais não disponíveis');
+          }
+          return Promise.reject(new Error('Credenciais não disponíveis'));
         }
+
+        // Define a URL base dinamicamente
+        config.baseURL = credentials.apiBaseUrl;
+
+        // Adiciona autenticação Basic
+        config.auth = {
+          username: credentials.username,
+          password: credentials.password,
+        };
 
         // Log em desenvolvimento
         if (__DEV__) {
-          console.log(`[API] ${config.method?.toUpperCase()} ${config.url}`);
+          console.log(`[API] ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
         }
 
         return config;

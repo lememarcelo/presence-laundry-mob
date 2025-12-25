@@ -146,3 +146,6 @@ export const useSessionStore = create<SessionState>((set, get) => ({
 
 // Exporta seletor para uso com getState() fora de componentes React
 export const getSessionCredentials = () => useSessionStore.getState().credentials;
+
+// Verifica se está autenticado (para uso fora de componentes React)
+export const isAuthenticated = () => useSessionStore.getState().isAuthenticated;

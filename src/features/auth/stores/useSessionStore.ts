@@ -31,14 +31,14 @@ export interface SessionState {
 }
 
 export const useSessionStore = create<SessionState>((set) => ({
-    // DEV: Inicia autenticado para pular login durante desenvolvimento
-    isAuthenticated: true,
+    // Inicia não autenticado - requer login
+    isAuthenticated: false,
     isLoading: false,
     error: null,
-    // IMPORTANTE: Presence Dashboard API (Horse) - porta 8081
-    baseUrl: 'http://192.168.0.136:8081',
-    username: 'presence',
-    password: '1',
+    // Valores padrão vazios
+    baseUrl: null,
+    username: null,
+    password: null,
 
     /**
      * Define e persiste as credenciais de autenticação
@@ -73,14 +73,8 @@ export const useSessionStore = create<SessionState>((set) => ({
 
     /**
      * Carrega credenciais salvas do SecureStore
-     * NOTA: Em modo DEV, ignora credenciais salvas e usa os valores padrão
      */
     loadCredentials: async () => {
-        // DEV: Não carregar do SecureStore para usar sempre o IP correto
-        console.log('[SessionStore] loadCredentials - usando valores padrão (DEV mode)');
-        return;
-
-        /* PRODUÇÃO: Descomentar quando tiver tela de login
         try {
             set({ isLoading: true, error: null });
 
@@ -108,7 +102,6 @@ export const useSessionStore = create<SessionState>((set) => ({
             });
             console.error('Erro ao carregar credenciais:', error);
         }
-        */
     },
 
     /**

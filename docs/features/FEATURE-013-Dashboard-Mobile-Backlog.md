@@ -42,10 +42,10 @@
 | M2-K-002 | Criar componente SkeletonCard             | ✅     | AI          | `SkeletonCard.tsx` com variantes       |
 | M2-K-003 | Adicionar tooltip/detail ao tocar em card | ✅     | AI          | KPIDetailModal + TouchableOpacity      |
 | M2-K-004 | Implementar card Comparativo Loja x Rede  | ✅     | AI          | ComparativoLojaRedeCard.tsx            |
-| M2-K-005 | Melhorar layout responsivo dos cards      | 🔲     | -           | Grid adaptativo para tablets           |
+| M2-K-005 | Melhorar layout responsivo dos cards      | ✅     | AI          | useResponsiveColumns + 2/3/4 cols      |
 | M2-K-006 | Adicionar mini-gráfico inline nos cards   | ✅     | AI          | SparklineChart.tsx com SVG             |
 
-**Progresso M2-K:** 5/6 (83%)
+**Progresso M2-K:** 6/6 (100%)
 
 ---
 
@@ -97,22 +97,22 @@
 | M6-U-001 | Garantir touch targets ≥ 44pt              | ✅     | AI          | minHeight: 44 nos componentes    |
 | M6-U-002 | Adicionar labels de acessibilidade         | ✅     | AI          | accessibilityRole/Label/Hint     |
 | M6-U-003 | Implementar modo offline com cache         | ✅     | AI          | useOfflineStatus + OfflineBanner |
-| M6-U-004 | Otimizar tempo de carregamento inicial     | 🔲     | -           | Target < 3s                      |
+| M6-U-004 | Otimizar tempo de carregamento inicial     | ✅     | AI          | Prefetch + lazy load screens     |
 | M6-U-005 | Adicionar onboarding/tutorial primeira vez | ✅     | AI          | OnboardingTour.tsx 6 steps       |
 
-**Progresso M6-U:** 4/5 (80%)
+**Progresso M6-U:** 5/5 (100%)
 
 ---
 
 ## Milestone 7: Autenticação (M7-A)
 
-| ID       | Tarefa                                        | Status | Responsável | Notas                         |
-| -------- | --------------------------------------------- | ------ | ----------- | ----------------------------- |
-| M7-A-001 | Implementar tratamento de erro 401            | ✅     | AI          | axiosClient + logout callback |
-| M7-A-002 | Adicionar refresh token (se backend suportar) | 🔲     | -           | Opcional                      |
-| M7-A-003 | Implementar logout com limpeza de cache       | 🔲     | -           | Limpar TanStack Query cache   |
+| ID       | Tarefa                                        | Status | Responsável | Notas                           |
+| -------- | --------------------------------------------- | ------ | ----------- | ------------------------------- |
+| M7-A-001 | Implementar tratamento de erro 401            | ✅     | AI          | axiosClient + logout callback   |
+| M7-A-002 | Adicionar refresh token (se backend suportar) | ➖     | -           | Backend não suporta (N/A)       |
+| M7-A-003 | Implementar logout com limpeza de cache       | ✅     | AI          | queryClient.clear() em MainTabs |
 
-**Progresso M7-A:** 1/3 (33%)
+**Progresso M7-A:** 2/2 (100%) + 1 N/A
 
 ---
 
@@ -121,13 +121,13 @@
 | Milestone           | Total  | Concluído | Progresso |
 | ------------------- | ------ | --------- | --------- |
 | M1: Filtros Globais | 8      | 8         | 100%      |
-| M2: KPIs            | 6      | 5         | 83%       |
+| M2: KPIs            | 6      | 6         | 100%      |
 | M3: Gráficos        | 6      | 6         | 100%      |
 | M4: Heatmap/Mapas   | 4      | 4         | 100%      |
 | M5: Ranking         | 4      | 4         | 100%      |
-| M6: UX/UI           | 5      | 4         | 80%       |
-| M7: Autenticação    | 3      | 1         | 33%       |
-| **Total**           | **36** | **32**    | **89%**   |
+| M6: UX/UI           | 5      | 5         | 100%      |
+| M7: Autenticação    | 3      | 2 + 1 N/A | 100%      |
+| **Total**           | **36** | **35**    | **100%**  |
 
 ---
 

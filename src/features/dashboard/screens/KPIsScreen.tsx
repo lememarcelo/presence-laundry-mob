@@ -23,24 +23,20 @@ import {
   useInvalidateDashboard,
 } from "../hooks/useDashboardQueries";
 import { FilterBar } from "../components/FilterBarNew";
-import {
-  SemaforoIndicator,
-  getSemaforoStatus,
-} from "../components/SemaforoIndicator";
+import { getSemaforoStatus } from "../components/SemaforoIndicator";
 import { KPISkeletonGrid } from "../components/SkeletonCard";
 import {
   ComparativoLojaRedeCard,
   formatadores,
 } from "../components/ComparativoLojaRedeCard";
-import {
-  SparklineChart,
-  generateMockSparklineData,
-} from "../components/SparklineChart";
 import { KPIDetailModal, KPIDetailData } from "../components/KPIDetailModal";
 import { OnboardingTour } from "../components/OnboardingTour";
+import { DraggableKPIGrid } from "../components/DraggableKPIGrid";
+import { useOrderedKPIs } from "../stores/useKPIOrderStore";
 import { mockKPIs } from "../data/mock-data";
 import { KPICard as KPICardType } from "@/models/dashboard.models";
 import { DashboardKPIs } from "../api/dashboard.service";
+import { useGridLayout, GridSpan } from "@/shared/components/GridContainer";
 
 // ========================================
 // Helpers - Transforma dados da API em KPICards
@@ -62,14 +58,8 @@ function formatNumber(value: number | undefined | null): string {
 function isValidDashboardKPIs(data: unknown): data is DashboardKPIs {
   if (!data || typeof data !== "object") return false;
   const d = data as any;
-  // Valida estrutura conforme backend Horse
-  return (
-    d.faturamento?.atual !== undefined &&
-    d.tickets?.atual !== undefined &&
-    d.pecas?.atual !== undefined &&
-    d.clientes !== undefined &&
-    d.ranking !== undefined
-  );
+  // Valida estrutura mínima - só precisa ter faturamento
+  return d.faturamento?.atual !== undefined;
 }
 
 // M2-K-003: Helpers para dados do modal de detalhes
@@ -310,62 +300,60 @@ function transformKPIsFromAPI(data: DashboardKPIs): KPICardType[] {
 // Componente animado de Card de KPI
 const AnimatedTouchable = Animated.createAnimatedComponent(TouchableOpacity);
 
+/**
+ * KPICardComponent - Card minimalista de KPI
+ *
+ * Design limpo com foco no valor principal.
+ * Detalhes extras (sparkline, semáforo) movidos para o modal.
+ */
 function KPICardComponent({
   data,
-  sparklineData,
   onPress,
   index = 0,
   animationKey = 0,
+  drag,
+  isActive,
 }: {
   data: KPICardType;
-  sparklineData?: number[];
   onPress?: () => void;
   index?: number;
   animationKey?: number;
+  drag?: () => void;
+  isActive?: boolean;
 }) {
-  const { colors, tokens } = useTheme();
+  const { colors } = useTheme();
 
   // Animação de entrada stagger
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const scaleAnim = useRef(new Animated.Value(0.85)).current;
-  const slideAnim = useRef(new Animated.Value(50)).current;
+  const scaleAnim = useRef(new Animated.Value(0.95)).current;
 
   useEffect(() => {
-    // Reset antes de animar
     fadeAnim.setValue(0);
-    scaleAnim.setValue(0.85);
-    slideAnim.setValue(50);
+    scaleAnim.setValue(0.95);
 
-    const delay = index * 100; // 100ms entre cada card
+    const delay = index * 80;
 
     const animation = Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 400,
+        duration: 300,
         delay,
         useNativeDriver: true,
       }),
       Animated.spring(scaleAnim, {
         toValue: 1,
-        tension: 50,
-        friction: 8,
-        delay,
-        useNativeDriver: true,
-      }),
-      Animated.spring(slideAnim, {
-        toValue: 0,
-        tension: 50,
-        friction: 8,
+        tension: 80,
+        friction: 10,
         delay,
         useNativeDriver: true,
       }),
     ]);
 
     animation.start();
-
     return () => animation.stop();
   }, [animationKey]);
 
+  // Cor e ícone de tendência
   const trendColor =
     data.trend === "up"
       ? "#10B981"
@@ -375,13 +363,15 @@ function KPICardComponent({
 
   const trendIcon =
     data.trend === "up"
-      ? "trending-up"
+      ? "arrow-up"
       : data.trend === "down"
-      ? "trending-down"
+      ? "arrow-down"
       : "minus";
 
-  // Status do semáforo baseado na variação percentual
-  const semaforoStatus = getSemaforoStatus(data.percentChange ?? 0);
+  const percentChange = data.percentChange ?? 0;
+
+  // Cor única do KPI (definida em transformKPIsFromAPI)
+  const kpiColor = data.color || colors.accent;
 
   return (
     <AnimatedTouchable
@@ -390,80 +380,45 @@ function KPICardComponent({
         {
           backgroundColor: colors.surface,
           borderColor: colors.cardBorder,
+          borderLeftColor: kpiColor,
+          borderLeftWidth: 4,
           opacity: fadeAnim,
-          transform: [{ translateY: slideAnim }, { scale: scaleAnim }],
+          transform: [{ scale: scaleAnim }],
+          width: "100%",
+          ...(isActive ? { elevation: 8, shadowOpacity: 0.2 } : {}),
         },
       ]}
       onPress={onPress}
-      activeOpacity={0.7}
+      onLongPress={drag}
+      delayLongPress={150}
+      activeOpacity={0.8}
       accessibilityRole="button"
       accessibilityLabel={`${data.title}: ${data.formattedValue}. Toque para ver detalhes.`}
-      accessibilityHint="Abre modal com detalhes do indicador"
     >
-      <View style={styles.kpiHeader}>
-        <View style={styles.kpiHeaderLeft}>
-          <View
-            style={[
-              styles.iconContainer,
-              { backgroundColor: data.color + "20" },
-            ]}
-          >
-            <MaterialCommunityIcons
-              name={data.icon as any}
-              size={24}
-              color={data.color}
-            />
-          </View>
-          {/* Semáforo de status */}
-          <SemaforoIndicator status={semaforoStatus} size={10} />
-        </View>
-        <View
-          style={[styles.trendBadge, { backgroundColor: trendColor + "20" }]}
-        >
-          <MaterialCommunityIcons
-            name={trendIcon}
-            size={14}
-            color={trendColor}
-          />
-          <Text style={[styles.trendText, { color: trendColor }]}>
-            {Math.abs(data.percentChange ?? 0).toFixed(1)}%
-          </Text>
-        </View>
-      </View>
-
+      {/* Valor principal - destaque */}
       <Text
-        style={[
-          styles.kpiValue,
-          { color: colors.textPrimary, fontSize: tokens.typography.h2 },
-        ]}
+        style={[styles.kpiValue, { color: colors.textPrimary }]}
         numberOfLines={1}
         adjustsFontSizeToFit
       >
         {data.formattedValue}
       </Text>
 
-      {/* Sparkline - tendência dos últimos 7 dias */}
-      {sparklineData && sparklineData.length > 0 && (
-        <View style={styles.sparklineContainer}>
-          <SparklineChart
-            data={sparklineData}
-            width={100}
-            height={24}
-            color={data.color}
-            showLastPoint={true}
-            filled={true}
-          />
-        </View>
-      )}
-
+      {/* Título completo */}
       <Text
-        style={[
-          styles.kpiTitle,
-          { color: colors.mutedText, fontSize: tokens.typography.caption },
-        ]}
+        style={[styles.kpiTitle, { color: colors.mutedText }]}
+        numberOfLines={1}
       >
         {data.title}
       </Text>
+
+      {/* Badge de variação */}
+      <View style={styles.trendRow}>
+        <MaterialCommunityIcons name={trendIcon} size={14} color={trendColor} />
+        <Text style={[styles.trendText, { color: trendColor }]}>
+          {Math.abs(percentChange).toFixed(1)}%
+        </Text>
+      </View>
     </AnimatedTouchable>
   );
 }
@@ -472,6 +427,13 @@ export function KPIsScreen() {
   const { colors, tokens } = useTheme();
   const { dataInicio, dataFim, lojasSelecionadas } = useFiltersStore();
   const { invalidateAll } = useInvalidateDashboard();
+
+  // Grid layout hook para calcular larguras dos cards
+  const { getItemWidth } = useGridLayout({
+    columns: 2,
+    gap: 12,
+    paddingHorizontal: 16,
+  });
 
   // M2-K-003: State para modal de detalhes do KPI
   const [selectedKPI, setSelectedKPI] = useState<KPIDetailData | null>(null);
@@ -597,17 +559,6 @@ export function KPIsScreen() {
     };
   }, [metricas, lojasSelecionadas]);
 
-  // Gerar dados de sparkline para cada KPI (mock por enquanto)
-  const sparklineDataMap = React.useMemo(() => {
-    const map: Record<string, number[]> = {};
-    kpis.forEach((kpi) => {
-      // Gerar dados mock baseados no valor atual
-      const baseValue = typeof kpi.value === "number" ? kpi.value : 0;
-      map[kpi.id] = generateMockSparklineData(baseValue, 0.15, 7);
-    });
-    return map;
-  }, [kpis]);
-
   // M2-K-003: Handler para abrir modal de detalhes do KPI
   const handleKPIPress = React.useCallback(
     (kpi: KPICardType) => {
@@ -708,26 +659,31 @@ export function KPIsScreen() {
           />
         }
       >
-        {/* Grid de KPIs */}
-        <View style={styles.kpiGrid}>
-          {kpis.map((kpi, index) => (
+        {/* Grid de KPIs com Drag & Drop */}
+        <DraggableKPIGrid
+          kpis={kpis}
+          animationKey={animationKey}
+          renderCard={(kpi, index, drag, isActive) => (
             <KPICardComponent
               key={`${kpi.id}-${animationKey}`}
               data={kpi}
-              sparklineData={sparklineDataMap[kpi.id]}
               onPress={() => handleKPIPress(kpi)}
               index={index}
               animationKey={animationKey}
+              drag={drag}
+              isActive={isActive}
             />
-          ))}
-        </View>
-
-        {/* Comparativo Loja x Rede */}
-        <ComparativoLojaRedeCard
-          nomeLoja={comparativoData.nomeLoja}
-          metricas={comparativoData.metricas}
-          isLoading={isFetching}
+          )}
         />
+
+        {/* Comparativo Loja x Rede - Full width (span 2) */}
+        <View style={{ marginHorizontal: 16 }}>
+          <ComparativoLojaRedeCard
+            nomeLoja={comparativoData.nomeLoja}
+            metricas={comparativoData.metricas}
+            isLoading={isFetching}
+          />
+        </View>
 
         {/* Resumo */}
         <View
@@ -736,6 +692,7 @@ export function KPIsScreen() {
             {
               backgroundColor: colors.surface,
               borderColor: colors.cardBorder,
+              marginHorizontal: 16,
             },
           ]}
         >
@@ -821,7 +778,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: 16,
+    paddingVertical: 16,
   },
   periodContainer: {
     flexDirection: "row",
@@ -841,52 +798,35 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   kpiCard: {
-    width: "48%",
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 16,
     borderWidth: 1,
     marginBottom: 12,
-  },
-  kpiHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  iconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  kpiHeaderLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  trendBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    gap: 2,
-  },
-  trendText: {
-    fontSize: 12,
-    fontWeight: "600",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
   },
   kpiValue: {
+    fontSize: 24,
     fontWeight: "700",
     marginBottom: 4,
-  },
-  sparklineContainer: {
-    marginVertical: 6,
-    alignItems: "center",
+    letterSpacing: -0.5,
   },
   kpiTitle: {
+    fontSize: 13,
     fontWeight: "500",
+    marginBottom: 8,
+  },
+  trendRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  trendText: {
+    fontSize: 13,
+    fontWeight: "600",
   },
   summaryCard: {
     padding: 16,

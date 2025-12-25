@@ -13,7 +13,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { ThemeProvider } from "./src/shared/theme/ThemeProvider";
 import { RootNavigator } from "./src/navigation/RootNavigator";
 import { setOnUnauthorizedCallback } from "./src/shared/api/axiosClient";
-import { useSessionStore } from "./src/features/auth/stores/useSessionStore";
+import { useSessionStore } from "./src/features/auth/stores/session.store";
 
 // Configuração do QueryClient para TanStack Query
 // gcTime alto para manter dados em cache quando offline
@@ -35,17 +35,17 @@ const queryClient = new QueryClient({
 
 // Componente interno que configura o callback de 401
 function AppWithAuth() {
-  const logout = useSessionStore((state) => state.logout);
+  const clearCredentials = useSessionStore((state) => state.clearCredentials);
 
   // M7-A-001: Registra callback para logout em erro 401
   useEffect(() => {
     setOnUnauthorizedCallback(() => {
       console.warn("[App] Erro 401 detectado - realizando logout automático");
-      logout();
+      clearCredentials();
       // Limpa cache do React Query para evitar dados stale
       queryClient.clear();
     });
-  }, [logout]);
+  }, [clearCredentials]);
 
   return <RootNavigator />;
 }

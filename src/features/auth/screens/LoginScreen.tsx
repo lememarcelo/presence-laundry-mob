@@ -17,16 +17,13 @@ import {
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTheme } from "@/shared/theme/ThemeProvider";
-import { apiClient } from "@/shared/api/axios-client";
-import { useSessionStore } from "../stores/useSessionStore";
+import { useSessionStore } from "../stores/session.store";
 
 export function LoginScreen() {
   const { colors, tokens } = useTheme();
 
   // Estado do formulário
-  const [apiBaseUrl, setApiBaseUrl] = useState(
-    "http://192.168.0.136:8002/datasnap/rest"
-  );
+  const [apiBaseUrl, setApiBaseUrl] = useState("http://192.168.0.136:8081");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -79,7 +76,11 @@ export function LoginScreen() {
       await new Promise((resolve) => setTimeout(resolve, 500));
 
       // Salva credenciais e marca como autenticado
-      await setCredentials(apiBaseUrl.trim(), username.trim(), password.trim());
+      await setCredentials({
+        apiBaseUrl: apiBaseUrl.trim(),
+        username: username.trim(),
+        password: password.trim(),
+      });
       // A navegação ocorrerá automaticamente pelo RootNavigator
     } catch (err) {
       const errorMessage =
