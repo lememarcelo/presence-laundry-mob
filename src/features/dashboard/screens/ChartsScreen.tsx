@@ -30,6 +30,8 @@ import {
   useEvolucaoPagamentos,
   usePendenciaProducao,
   useInvalidateDashboard,
+  useFaturamentoDiario,
+  useFaturamentoMensal,
 } from "../hooks/useDashboardQueries";
 import { FilterBar } from "../components/FilterBarNew";
 import {
@@ -58,6 +60,20 @@ export function ChartsScreen() {
   const [activeChart, setActiveChart] = useState<ChartType>("faturamento");
   const { invalidateAll } = useInvalidateDashboard();
 
+  // Hook para faturamento diário (dados reais da API)
+  const {
+    data: faturamentoDiarioData,
+    isLoading: faturamentoDiarioLoading,
+    refetch: refetchFaturamentoDiario,
+  } = useFaturamentoDiario();
+
+  // Hook para faturamento mensal (dados reais da API)
+  const {
+    data: faturamentoMensalData,
+    isLoading: faturamentoMensalLoading,
+    refetch: refetchFaturamentoMensal,
+  } = useFaturamentoMensal();
+
   // Hook para distribuição de serviços
   const {
     data: distribuicaoData,
@@ -82,6 +98,10 @@ export function ChartsScreen() {
   const onRefresh = React.useCallback(async () => {
     setRefreshing(true);
     await invalidateAll();
+    if (activeChart === "faturamento") {
+      await refetchFaturamentoDiario();
+      await refetchFaturamentoMensal();
+    }
     if (activeChart === "servicos") {
       await refetchDistribuicao();
     }
@@ -95,6 +115,8 @@ export function ChartsScreen() {
   }, [
     invalidateAll,
     activeChart,
+    refetchFaturamentoDiario,
+    refetchFaturamentoMensal,
     refetchDistribuicao,
     refetchPagamentos,
     refetchPendencia,
@@ -112,13 +134,13 @@ export function ChartsScreen() {
   const pieChartData = useMemo(() => {
     if (distribuicaoData?.segmentos) {
       return distribuicaoData.segmentos.map((seg) => ({
-        value: seg.valor,
+        value: seg.valor || 0,
         color:
           seg.cor || "#" + Math.floor(Math.random() * 16777215).toString(16),
-        text: `${seg.percentual.toFixed(0)}%`,
+        text: `${(seg.percentual ?? 0).toFixed(0)}%`,
         textColor: "#fff",
         textSize: 12,
-        label: seg.grupo,
+        label: seg.grupo || "Outros",
       }));
     }
     // Mock data fallback
@@ -137,11 +159,11 @@ export function ChartsScreen() {
     const periodo = pagamentosData?.[0];
     if (periodo?.pagamentos) {
       return periodo.pagamentos.map((pag) => ({
-        value: pag.valor,
+        value: pag.valor || 0,
         color:
           pag.cor || "#" + Math.floor(Math.random() * 16777215).toString(16),
-        text: `${pag.percentual.toFixed(0)}%`,
-        label: pag.modalidade,
+        text: `${(pag.percentual ?? 0).toFixed(0)}%`,
+        label: pag.modalidade || "Outros",
       }));
     }
     // Mock data fallback
@@ -259,25 +281,78 @@ export function ChartsScreen() {
     pendenciaData?.totalPendente ||
     pendenciaChartData.reduce((sum, item) => sum + item.value, 0);
 
-  // Dados para gráfico de faturamento diário (LineChart)
-  const faturamentoLineData = mockFaturamentoDiario.data.map((d, i) => ({
-    value: d.y / 1000,
-    label: i % 3 === 0 ? d.x : "",
-    dataPointText: "",
-  }));
+  // Dados para gráfico de faturamento diário (LineChart) - usa dados reais da API
+  const faturamentoLineData = useMemo(() => {
+    if (
+      faturamentoDiarioData?.serieAtual &&
+      faturamentoDiarioData.serieAtual.length > 0
+    ) {
+      return faturamentoDiarioData.serieAtual.map((valor, i) => ({
+        value: valor / 1000,
+        label:
+          i % 3 === 0
+            ? faturamentoDiarioData.categorias?.[i] || `${i + 1}`
+            : "",
+        dataPointText: "",
+      }));
+    }
+    // Fallback para mock se API não retornar dados
+    return mockFaturamentoDiario.data.map((d, i) => ({
+      value: d.y / 1000,
+      label: i % 3 === 0 ? d.x : "",
+      dataPointText: "",
+    }));
+  }, [faturamentoDiarioData]);
 
-  // Dados para gráfico de faturamento mensal (BarChart)
-  const faturamentoMensalData = mockFaturamentoMensal.data.map((d) => ({
-    value: d.y / 1000,
-    label: d.x,
-    frontColor: "#8B5CF6",
-  }));
+  // Dados para gráfico de faturamento mensal (BarChart) - usa dados reais da API
+  const faturamentoMensalChartData = useMemo(() => {
+    const MESES = [
+      "Jan",
+      "Fev",
+      "Mar",
+      "Abr",
+      "Mai",
+      "Jun",
+      "Jul",
+      "Ago",
+      "Set",
+      "Out",
+      "Nov",
+      "Dez",
+    ];
 
-  // Total anual
-  const totalAnual = mockFaturamentoMensal.data.reduce((s, d) => s + d.y, 0);
+    if (
+      faturamentoMensalData?.dadosAnoAtual &&
+      faturamentoMensalData.dadosAnoAtual.length > 0
+    ) {
+      return faturamentoMensalData.dadosAnoAtual.map((item, i) => ({
+        value: item.valor / 1000,
+        label: MESES[item.mes - 1] || `M${item.mes}`,
+        frontColor: "#8B5CF6",
+      }));
+    }
+    // Fallback para mock
+    return mockFaturamentoMensal.data.map((d) => ({
+      value: d.y / 1000,
+      label: d.x,
+      frontColor: "#8B5CF6",
+    }));
+  }, [faturamentoMensalData]);
+
+  // Total anual calculado dos dados reais ou mock
+  const totalAnual = useMemo(() => {
+    if (faturamentoMensalData?.dadosAnoAtual) {
+      return faturamentoMensalData.dadosAnoAtual.reduce(
+        (s, item) => s + item.valor,
+        0
+      );
+    }
+    return mockFaturamentoMensal.data.reduce((s, d) => s + d.y, 0);
+  }, [faturamentoMensalData]);
+
   const mediaAnual = totalAnual / 12;
 
-  // Dados para gráfico de peças (BarChart)
+  // Dados para gráfico de peças (BarChart) - ainda usa mock (não temos endpoint separado)
   const pecasBarData = mockPecasPorDia.data.map((d) => ({
     value: d.y,
     label: d.x,
@@ -289,32 +364,84 @@ export function ChartsScreen() {
     ),
   }));
 
-  // Dados para comparativo (grouped bars)
-  // mockComparativoMensal[0] = mês atual, mockComparativoMensal[1] = mês anterior
-  const mesAtual = mockComparativoMensal[0];
-  const mesAnterior = mockComparativoMensal[1];
+  // Dados para comparativo (grouped bars) - compara ano atual vs anterior
+  const comparativoBarData = useMemo(() => {
+    const MESES_SHORT = [
+      "J",
+      "F",
+      "M",
+      "A",
+      "M",
+      "J",
+      "J",
+      "A",
+      "S",
+      "O",
+      "N",
+      "D",
+    ];
 
-  const comparativoBarData = mesAtual.data.flatMap((d, i) => [
-    {
-      value: d.y / 1000,
-      label: d.x.replace("Semana ", "S"),
-      frontColor: "#007AFF",
-      spacing: 2,
-    },
-    {
-      value: mesAnterior.data[i]?.y / 1000 || 0,
-      frontColor: "#8E8E93",
-      spacing: 20,
-    },
-  ]);
+    if (
+      faturamentoMensalData?.dadosAnoAtual &&
+      faturamentoMensalData?.dadosAnoAnterior
+    ) {
+      const result: any[] = [];
+      for (let i = 0; i < 12; i++) {
+        const dadoAtual = faturamentoMensalData.dadosAnoAtual.find(
+          (d) => d.mes === i + 1
+        );
+        const dadoAnterior = faturamentoMensalData.dadosAnoAnterior.find(
+          (d) => d.mes === i + 1
+        );
+        result.push({
+          value: (dadoAtual?.valor || 0) / 1000,
+          label: MESES_SHORT[i],
+          frontColor: "#007AFF",
+          spacing: 2,
+        });
+        result.push({
+          value: (dadoAnterior?.valor || 0) / 1000,
+          frontColor: "#8E8E93",
+          spacing: 12,
+        });
+      }
+      return result;
+    }
+    // Fallback mock
+    const mesAtual = mockComparativoMensal[0];
+    const mesAnterior = mockComparativoMensal[1];
+    return mesAtual.data.flatMap((d, i) => [
+      {
+        value: d.y / 1000,
+        label: d.x.replace("Semana ", "S"),
+        frontColor: "#007AFF",
+        spacing: 2,
+      },
+      {
+        value: mesAnterior.data[i]?.y / 1000 || 0,
+        frontColor: "#8E8E93",
+        spacing: 20,
+      },
+    ]);
+  }, [faturamentoMensalData]);
 
   // Calcular totais
-  const totalFaturamento = mockFaturamentoDiario.data.reduce(
-    (s, d) => s + d.y,
-    0
-  );
+  const totalFaturamento = useMemo(() => {
+    if (faturamentoDiarioData?.serieAtual) {
+      return faturamentoDiarioData.serieAtual.reduce((s, v) => s + v, 0);
+    }
+    return mockFaturamentoDiario.data.reduce((s, d) => s + d.y, 0);
+  }, [faturamentoDiarioData]);
+
   const totalPecas = mockPecasPorDia.data.reduce((s, d) => s + d.y, 0);
-  const mediaFaturamento = totalFaturamento / mockFaturamentoDiario.data.length;
+  const mediaFaturamento =
+    totalFaturamento /
+    (faturamentoDiarioData?.serieAtual?.length ||
+      mockFaturamentoDiario.data.length);
+
+  // Loading state para faturamento
+  const faturamentoLoading =
+    faturamentoDiarioLoading || faturamentoMensalLoading;
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -456,7 +583,8 @@ export function ChartsScreen() {
                 Faturamento Mensal
               </Text>
               <Text style={[styles.chartSubtitle, { color: colors.mutedText }]}>
-                Acumulado 2025 (R$ mil) - Deslize para ver todos
+                Acumulado {faturamentoMensalData?.anoAtual || 2025} (R$ mil) -
+                Deslize para ver todos
               </Text>
 
               <ZoomableChartWrapper
@@ -464,7 +592,7 @@ export function ChartsScreen() {
                 height={250}
               >
                 <BarChart
-                  data={faturamentoMensalData}
+                  data={faturamentoMensalChartData}
                   width={expandedChartWidth - 50}
                   height={200}
                   barWidth={28}

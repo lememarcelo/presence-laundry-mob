@@ -35,38 +35,107 @@ const screenWidth = Dimensions.get("window").width;
 
 type MapaType = "temporal" | "geografico";
 
+// Interface para célula do backend (após transformação no service)
+interface CelulaHeatmap {
+  dia: number; // 0-6 (Dom-Sáb) - já transformado no service
+  hora: number; // 0-23
+  valor: number; // Valor absoluto
+  intensidade: number; // 0-1 (já normalizado no service)
+}
+
 // Transforma dados da API para formato local
-function transformHeatmapFromAPI(data: DadosHeatmapTemporal): HeatmapData {
-  // Validar dados antes de processar
-  if (!data || !data.valores || !Array.isArray(data.valores)) {
-    console.log("[HeatmapScreen] Invalid data, returning mock", data);
-    return mockHeatmapData;
+function transformHeatmapFromAPI(data: any): HeatmapData {
+  // Backend retorna 'celulas' (array de objetos) após transformação no service
+  const celulas: CelulaHeatmap[] = data?.celulas;
+
+  // Se tem celulas, converte para matriz 2D
+  if (celulas && Array.isArray(celulas) && celulas.length > 0) {
+    console.log("[HeatmapScreen] Transformando celulas:", {
+      count: celulas.length,
+      first: celulas[0],
+      maxValor: data.maxValor,
+    });
+
+    const maxVal = data.maxValor || 1;
+
+    // Criar matriz 7 dias x 24 horas
+    const valores: number[][] = Array(7)
+      .fill(null)
+      .map(() => Array(24).fill(0));
+
+    celulas.forEach((celula) => {
+      // Service já transforma diaSemana para dia (1-7 -> 0-6)
+      // Mas preciso verificar se ainda vem como 1-7 do backend original
+      let dia = celula.dia;
+
+      // Se dia está no range 1-7, converter para 0-6
+      if (dia >= 1 && dia <= 7) {
+        dia = dia - 1;
+      }
+
+      const hora = celula.hora;
+      if (dia >= 0 && dia < 7 && hora >= 0 && hora < 24) {
+        // Usar intensidade já normalizada (0-1) ou calcular do valor
+        valores[dia][hora] =
+          celula.intensidade > 0
+            ? celula.intensidade
+            : maxVal > 0
+            ? celula.valor / maxVal
+            : 0;
+      }
+    });
+
+    return {
+      id: "mapa-temporal",
+      title: data.titulo || "Mapa de Calor Temporal",
+      xLabels: data.diasSemana || [
+        "Dom",
+        "Seg",
+        "Ter",
+        "Qua",
+        "Qui",
+        "Sex",
+        "Sáb",
+      ],
+      yLabels: (data.horas || [])
+        .slice(0, 24)
+        .map((h: string) => h.substring(0, 5)),
+      values: valores,
+      minValue: 0,
+      maxValue: 1,
+      colorScale: ["#EFF6FF", "#3B82F6", "#1E3A8A"],
+    };
   }
 
-  // Normaliza valores para escala 0-1
-  const maxVal = data.maxValor || 1;
-  const normalizedValues = data.valores.map((row) =>
-    Array.isArray(row) ? row.map((val) => val / maxVal) : []
-  );
+  // Fallback: se tem valores no formato antigo (matriz 2D)
+  if (data?.valores && Array.isArray(data.valores)) {
+    const maxVal = data.maxValor || 1;
+    const normalizedValues = data.valores.map((row: number[]) =>
+      Array.isArray(row) ? row.map((val) => val / maxVal) : []
+    );
 
-  return {
-    id: "mapa-temporal",
-    title: data.titulo || "Mapa de Calor Temporal",
-    xLabels: data.diasSemana || [
-      "Seg",
-      "Ter",
-      "Qua",
-      "Qui",
-      "Sex",
-      "Sáb",
-      "Dom",
-    ],
-    yLabels: data.horas || ["08h", "10h", "12h", "14h", "16h", "18h", "20h"],
-    values: normalizedValues,
-    minValue: 0,
-    maxValue: 1,
-    colorScale: ["#EFF6FF", "#3B82F6", "#1E3A8A"],
-  };
+    return {
+      id: "mapa-temporal",
+      title: data.titulo || "Mapa de Calor Temporal",
+      xLabels: data.diasSemana || [
+        "Dom",
+        "Seg",
+        "Ter",
+        "Qua",
+        "Qui",
+        "Sex",
+        "Sab",
+      ],
+      yLabels: data.horas || ["08h", "10h", "12h", "14h", "16h", "18h", "20h"],
+      values: normalizedValues,
+      minValue: 0,
+      maxValue: 1,
+      colorScale: ["#EFF6FF", "#3B82F6", "#1E3A8A"],
+    };
+  }
+
+  console.log("[HeatmapScreen] Invalid data, returning mock", data);
+  return mockHeatmapData;
 }
 
 // Função para interpolar cores do heatmap
@@ -123,7 +192,8 @@ export function HeatmapScreen() {
 
   // Transforma dados da API ou usa mock como fallback
   const heatmapData = useMemo(() => {
-    if (mapaTemporalAPI && mapaTemporalAPI.valores) {
+    // Backend retorna 'celulas' ou 'valores'
+    if (mapaTemporalAPI) {
       return transformHeatmapFromAPI(mapaTemporalAPI);
     }
     return mockHeatmapData;

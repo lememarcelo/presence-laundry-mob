@@ -206,18 +206,26 @@ export interface DadosGraficoLinha {
     pontos: Array<{ label: string; valor: number; valorAnterior?: number }>;
 }
 
+/**
+ * Formato transformado para gráfico de barras de faturamento diário
+ * Backend: { dias, diasAnteriores } → Frontend: { categorias, serieAtual, serieAnterior }
+ */
 export interface DadosGraficoBarras {
     titulo: string;
-    mesAtual: { label: string; valores: number[] };
-    mesAnterior?: { label: string; valores: number[] };
-    labels: string[];
+    categorias: string[];
+    serieAtual: number[];
+    serieAnterior?: number[];
 }
 
+/**
+ * Formato transformado para faturamento mensal comparativo
+ * Backend: { meses[] } → Frontend: { dadosAnoAtual, dadosAnoAnterior }
+ */
 export interface FaturamentoMensalComparativo {
-    titulo: string;
-    anoAtual: { ano: number; valores: number[] };
-    anoAnterior: { ano: number; valores: number[] };
-    labels: string[];
+    anoAtual: number;
+    anoAnterior: number;
+    dadosAnoAtual: Array<{ mes: number; valor: number }>;
+    dadosAnoAnterior: Array<{ mes: number; valor: number }>;
 }
 
 export interface SegmentoPizza {
@@ -255,13 +263,24 @@ export interface DadosPendenciaProducao {
     totalPendente: number;
 }
 
+export interface CelulaHeatmap {
+    diaSemana: number;
+    diaSemanaLabel: string;
+    hora: number;
+    horaLabel: string;
+    valor: number;
+    intensidade: number;
+}
+
 export interface DadosHeatmapTemporal {
     titulo: string;
     diasSemana: string[];
     horas: string[];
-    valores: number[][];
+    valores?: number[][];     // Formato antigo (matriz 2D)
+    celulas?: CelulaHeatmap[]; // Formato novo (array de objetos)
     maxValor: number;
-    minValor: number;
+    minValor?: number;
+    metrica?: string;
 }
 
 export interface RegiaoGeografica {
@@ -283,6 +302,7 @@ export interface LojaRanking {
     nome: string;
     faturamento: number;
     percentual: number;
+    intensidade: number; // 0-1 normalizado
 }
 
 export interface DadosRankingLojas {
@@ -385,6 +405,9 @@ export async function getMetricasConsolidadas(
 /**
  * GET /api/v1/graficos/faturamento-diario?lojas=...&mes=...&ano=...
  * Faturamento dia a dia do mês para gráfico de barras
+ * 
+ * Backend retorna: { dias: [{dia, valor}], diasAnteriores: [{dia, valor}] }
+ * Frontend espera: { titulo, categorias, serieAtual, serieAnterior }
  */
 export async function getFaturamentoDiario(
     lojas: string[],
@@ -398,12 +421,33 @@ export async function getFaturamentoDiario(
     };
 
     const response = await apiClient.get(`${BASE_PATH}/graficos/faturamento-diario`, { params });
-    return extractData(response);
+    const rawData = extractData<any>(response);
+
+    // Transformar formato backend para frontend (igual React web)
+    const dias: Array<{ dia: number; valor: number }> = rawData?.dias || [];
+    const diasAnteriores: Array<{ dia: number; valor: number }> = rawData?.diasAnteriores || [];
+
+    const categorias = dias.map((d) => String(d.dia));
+    const serieAtual = dias.map((d) => d.valor);
+
+    // Criar serieAnterior mapeando por dia
+    const diasAnterioresMap = new Map(diasAnteriores.map(d => [d.dia, d.valor]));
+    const serieAnterior = categorias.map(dia => diasAnterioresMap.get(Number(dia)) || 0);
+
+    return {
+        titulo: rawData?.titulo || 'Faturamento Diário',
+        categorias,
+        serieAtual,
+        serieAnterior: serieAnterior.some(v => v > 0) ? serieAnterior : undefined,
+    };
 }
 
 /**
  * GET /api/v1/graficos/faturamento-mensal?lojas=...&ano=...
  * Faturamento mensal comparativo (ano atual vs anterior)
+ * 
+ * Backend retorna: { meses: [{mesNum, valorAtual, valorAnterior}], anoAtual, anoAnterior }
+ * Frontend espera: { anoAtual, anoAnterior, dadosAnoAtual, dadosAnoAnterior }
  */
 export async function getFaturamentoMensal(
     lojas: string[],
@@ -415,7 +459,27 @@ export async function getFaturamentoMensal(
     };
 
     const response = await apiClient.get(`${BASE_PATH}/graficos/faturamento-mensal`, { params });
-    return extractData(response);
+    const rawData = extractData<any>(response);
+
+    // Transformar formato backend para frontend (igual React web)
+    const meses = rawData?.meses || [];
+
+    const dadosAnoAtual = meses.map((m: { mesNum: number; valorAtual: number }) => ({
+        mes: m.mesNum,
+        valor: m.valorAtual || 0,
+    }));
+
+    const dadosAnoAnterior = meses.map((m: { mesNum: number; valorAnterior: number }) => ({
+        mes: m.mesNum,
+        valor: m.valorAnterior || 0,
+    }));
+
+    return {
+        anoAtual: rawData?.anoAtual || new Date().getFullYear(),
+        anoAnterior: rawData?.anoAnterior || new Date().getFullYear() - 1,
+        dadosAnoAtual,
+        dadosAnoAnterior,
+    };
 }
 
 /**
@@ -457,6 +521,9 @@ export async function getDistribuicaoServicos(
 /**
  * GET /api/v1/graficos/evolucao-pagamentos?lojas=...&dtIni=...&dtFim=...
  * Evolução de pagamentos por modalidade
+ * 
+ * Backend retorna: { success, data: { titulo, data: [...] } }
+ * Frontend espera: EvolucaoPagamentos[] (array de meses)
  */
 export async function getEvolucaoPagamentos(
     lojas: string[],
@@ -470,7 +537,17 @@ export async function getEvolucaoPagamentos(
     };
 
     const response = await apiClient.get(`${BASE_PATH}/graficos/evolucao-pagamentos`, { params });
-    return extractData(response);
+    const rawData = extractData<any>(response);
+
+    // Backend retorna { titulo, data: [...] } - precisamos extrair o array
+    const meses = (rawData?.data || rawData || []) as EvolucaoPagamentos[];
+
+    console.log('[Dashboard API] EvolucaoPagamentos:', {
+        rawDataKeys: Object.keys(rawData || {}),
+        mesesCount: meses?.length || 0,
+    });
+
+    return meses;
 }
 
 /**
@@ -491,6 +568,9 @@ export async function getPendenciaProducao(
 /**
  * GET /api/v1/mapas/temporal?lojas=...&dtIni=...&dtFim=...
  * Mapa de calor temporal (matriz dia×hora)
+ * 
+ * Backend retorna: { celulas: [{diaSemana, hora, valor, intensidade 0-100}] }
+ * Frontend espera: { celulas: [{dia, hora, valor, intensidade 0-1}], maxValor, minValor }
  */
 export async function getMapaTemporal(
     lojas: string[],
@@ -503,8 +583,56 @@ export async function getMapaTemporal(
         dtFim: formatDateForAPI(dataFim),
     };
 
-    const response = await apiClient.get(`${BASE_PATH}/mapas/temporal`, { params });
-    return extractData(response);
+    console.log('[Dashboard API] Fetching MapaTemporal...', params);
+    try {
+        const response = await apiClient.get(`${BASE_PATH}/mapas/temporal`, { params });
+        const rawData = extractData<any>(response);
+
+        console.log('[Dashboard API] MapaTemporal raw response:', {
+            rawKeys: Object.keys(rawData || {}),
+            hasCelulas: Array.isArray(rawData?.celulas),
+            celulasCount: rawData?.celulas?.length || 0,
+        });
+
+        // Transformar formato do backend para formato do frontend
+        // Backend: diaSemana, hora, valor, intensidade (0-100)
+        // Frontend: dia, hora, valor, intensidade (0-1)
+        const celulasRaw = rawData?.celulas || [];
+        const celulas = celulasRaw.map(
+            (c: { diaSemana: number; hora: number; valor: number; intensidade: number }) => ({
+                dia: c.diaSemana,
+                hora: c.hora,
+                valor: c.valor,
+                intensidade: c.intensidade / 100, // Backend 0-100, frontend 0-1
+            })
+        );
+
+        // Calcular max/min dos valores
+        const valores = celulas.map((c: { valor: number }) => c.valor);
+        const maxValor = valores.length > 0 ? Math.max(...valores) : 0;
+        const minValor = valores.length > 0 ? Math.min(...valores) : 0;
+
+        const result: DadosHeatmapTemporal = {
+            titulo: rawData?.titulo || 'Mapa de Calor Temporal',
+            diasSemana: rawData?.diasSemana || ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'],
+            horas: rawData?.horas || Array.from({ length: 24 }, (_, i) => `${i}h`),
+            celulas,
+            maxValor,
+            minValor,
+            metrica: rawData?.metrica || 'faturamento',
+        };
+
+        console.log('[Dashboard API] MapaTemporal transformed:', {
+            celulasCount: result.celulas?.length || 0,
+            maxValor: result.maxValor,
+            minValor: result.minValor,
+        });
+
+        return result;
+    } catch (error: any) {
+        console.error('[Dashboard API] MapaTemporal ERROR:', error?.message);
+        throw error;
+    }
 }
 
 /**
@@ -529,6 +657,9 @@ export async function getMapaGeografico(
 /**
  * GET /api/v1/ranking/lojas?dtIni=...&dtFim=...
  * Ranking de todas as lojas
+ * 
+ * Backend retorna: { lojas: [{posicao, loja, nomeLoja, valor, percentualTop}], totalExibido, valorTotal }
+ * Frontend espera: { lojas: [{posicao, codigo, nome, faturamento, percentual}], totalLojas, totalFaturamento }
  */
 export async function getRankingLojas(
     dataInicio: Date,
@@ -539,8 +670,65 @@ export async function getRankingLojas(
         dtFim: formatDateForAPI(dataFim),
     };
 
-    const response = await apiClient.get(`${BASE_PATH}/ranking/lojas`, { params });
-    return extractData(response);
+    console.log('[Dashboard API] Fetching RankingLojas...', params);
+    try {
+        const response = await apiClient.get(`${BASE_PATH}/ranking/lojas`, { params });
+        const rawData = extractData<any>(response);
+
+        console.log('[Dashboard API] RankingLojas raw response:', {
+            rawKeys: Object.keys(rawData || {}),
+            lojasCount: rawData?.lojas?.length || 0,
+            firstRaw: rawData?.lojas?.[0],
+            totalExibido: rawData?.totalExibido,
+            valorTotal: rawData?.valorTotal,
+        });
+
+        // Transformar formato do backend para formato do frontend
+        // Backend: posicao, loja, nomeLoja, valor, percentualTop
+        // Frontend: posicao, codigo, nome, faturamento, percentual
+        interface BackendLojaRanking {
+            posicao: number;
+            loja: string;
+            nomeLoja: string;
+            valor: number;
+            percentualTop: number;
+        }
+
+        const lojasRaw = Array.isArray(rawData) ? rawData : (rawData?.lojas || []);
+
+        const lojasTransformadas = lojasRaw.map((l: BackendLojaRanking) => ({
+            posicao: l.posicao,
+            codigo: l.loja,
+            nome: l.nomeLoja,
+            faturamento: l.valor,
+            percentual: l.percentualTop,
+            intensidade: l.percentualTop / 100, // Normalizado 0-1 como React web
+        }));
+
+        const totalLojas = rawData?.totalExibido || lojasTransformadas.length;
+        const totalFaturamento = rawData?.valorTotal || lojasTransformadas.reduce(
+            (sum: number, l: { faturamento: number }) => sum + l.faturamento,
+            0
+        );
+
+        const result: DadosRankingLojas = {
+            lojas: lojasTransformadas,
+            totalLojas,
+            totalFaturamento,
+        };
+
+        console.log('[Dashboard API] RankingLojas transformed:', {
+            totalLojas: result.totalLojas,
+            totalFaturamento: result.totalFaturamento,
+            lojasCount: result.lojas.length,
+            firstLoja: result.lojas[0],
+        });
+
+        return result;
+    } catch (error: any) {
+        console.error('[Dashboard API] RankingLojas ERROR:', error?.message);
+        throw error;
+    }
 }
 
 /**
