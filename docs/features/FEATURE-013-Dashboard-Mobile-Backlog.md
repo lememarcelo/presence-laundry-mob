@@ -182,10 +182,49 @@ src/features/dashboard/
 
 ---
 
+---
+
+## Milestone 8: Ranking com Agrupamento Geográfico (M8-RG)
+
+> **Especificação completa:** [FEATURE-013-ranking-agrupamento-geografico.md](./FEATURE-013-ranking-agrupamento-geografico.md)
+
+| ID       | Tarefa                                                      | Status | Responsável | Notas                              |
+| -------- | ----------------------------------------------------------- | ------ | ----------- | ---------------------------------- |
+| M8-RG-01 | Adicionar tipos/interfaces para agregação geográfica        | 🔲     | -           | dashboard.models.ts                |
+| M8-RG-02 | Criar lógica de agregação (hook ou util)                    | 🔲     | -           | Agrupa por região/estado/cidade    |
+| M8-RG-03 | Criar componente DimensaoSelector                           | 🔲     | -           | Segmented: Região \| Estado \| Cidade |
+| M8-RG-04 | Criar componente MetricaVisualizacaoSelector                | 🔲     | -           | Segmented: Faturamento \| Lojas    |
+| M8-RG-05 | Integrar seletores no RankingScreen                         | 🔲     | -           | Acima do ranking list              |
+| M8-RG-06 | Adaptar lista para exibir dados agregados                   | 🔲     | -           | Nome, valor, %, barra              |
+| M8-RG-07 | Atualizar useFiltersStore com novos estados                 | 🔲     | -           | rankingDimensao, rankingMetrica    |
+| M8-RG-08 | Verificar/adaptar endpoint do backend                       | 🔲     | -           | Dados geográficos das lojas        |
+| M8-RG-09 | Testes manuais com dados reais                              | 🔲     | -           | Validar agregação                  |
+
+**Progresso M8-RG:** 0/9 (0%)
+
+---
+
+## Resumo Geral
+
+| Milestone                    | Total  | Concluído | Progresso |
+| ---------------------------- | ------ | --------- | --------- |
+| M1: Filtros Globais          | 8      | 8         | 100%      |
+| M2: KPIs                     | 6      | 6         | 100%      |
+| M3: Gráficos                 | 6      | 6         | 100%      |
+| M4: Heatmap/Mapas            | 4      | 4         | 100%      |
+| M5: Ranking                  | 4      | 4         | 100%      |
+| M6: UX/UI                    | 5      | 5         | 100%      |
+| M7: Autenticação             | 3      | 2 + 1 N/A | 100%      |
+| **M8: Ranking Geográfico**   | **9**  | **0**     | **0%**    |
+| **Total**                    | **45** | **35**    | **78%**   |
+
+---
+
 ## Histórico de Atualizações
 
 | Data       | Alterações                                                           |
 | ---------- | -------------------------------------------------------------------- |
+| 2025-01-05 | Adicionado Milestone 8 (Ranking com Agrupamento Geográfico)          |
 | 2025-12-24 | Criação do backlog                                                   |
 | 2025-12-24 | M1-G-001 a M1-G-006 concluídos (componentes de filtros)              |
 | 2025-12-24 | Atualização de endpoints para Presence Dashboard API (`/api/v1/...`) |

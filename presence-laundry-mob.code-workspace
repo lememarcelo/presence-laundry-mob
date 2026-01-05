@@ -1,0 +1,29 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../presence-dashboard-api"
+		},
+		{
+			"path": "../agents-skills"
+		},
+		{
+			"path": "../presence-laundry"
+		},
+		{
+			"path": "../domain"
+		},
+		{
+			"path": "../mobile/Presence Remote"
+		}
+	],
+	"settings": {
+		"typescript.tsdk": "node_modules\\typescript\\lib",
+		"chat.tools.terminal.autoApprove": {
+			".specify/scripts/bash/": true,
+			".specify/scripts/powershell/": true
+		}
+	}
+}

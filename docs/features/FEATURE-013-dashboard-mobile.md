@@ -83,6 +83,7 @@ O app mobile consome os **mesmos endpoints** do Presence Remote (`TSMDashLaundry
 | **Gráficos** | `/FaturamentoMensal/{lojas}/{ano}`              | GET    | Comparativo mensal (ano atual vs anterior)                |
 | **Gráficos** | `/Crescimento12Meses/{lojas}/{metrica}`         | GET    | Linha de crescimento 12 meses                             |
 | **Gráficos** | `/DistribuicaoServicos/{lojas}/{dtIni}/{dtFim}` | GET    | Pizza por grupo de serviço                                |
+| **Gráficos** | `/DistribuicaoPecas/{lojas}/{dtIni}/{dtFim}`    | GET    | Pizza por tipo de peça                                    |
 | **Gráficos** | `/EvolucaoPagamentos/{lojas}/{dtIni}/{dtFim}`   | GET    | Evolução por modalidade de pagamento                      |
 | **Gráficos** | `/PendenciaProducao/{lojas}`                    | GET    | Backlog de produção por atraso                            |
 | **Heatmap**  | `/MapaTemporal/{lojas}/{dtIni}/{dtFim}`         | GET    | Matriz dia×hora                                           |

@@ -213,6 +213,20 @@ src/
 | M-FR43 | Destaque visual da loja do usuário         | 🔲     |
 | M-FR44 | Pull-to-refresh                            | ✅     |
 
+### 3.8 Ranking com Agrupamento Geográfico (Novo)
+
+> **Especificação detalhada:** [FEATURE-013-ranking-agrupamento-geografico.md](./FEATURE-013-ranking-agrupamento-geografico.md)
+
+| ID      | Requisito                                                       | Status |
+| ------- | --------------------------------------------------------------- | ------ |
+| M-FR-63 | Seletor de dimensão: Região \| Estado \| Cidade                 | 🔲     |
+| M-FR-64 | Seletor de métrica: Faturamento \| Lojas                        | 🔲     |
+| M-FR-65 | Lista agregada ordenada pela métrica selecionada                | 🔲     |
+| M-FR-66 | Exibição de percentuais e barras de intensidade                 | 🔲     |
+| M-FR-67 | Card de líder do ranking (primeiro colocado)                    | 🔲     |
+| M-FR-68 | Total consolidado no rodapé                                     | 🔲     |
+| M-FR-69 | (Futuro) Drill-down: Região → Estado → Cidade → Lojas           | 🔲     |
+
 ---
 
 ## 4. Requisitos Funcionais - Onda 2 (Evolução Mobile)
