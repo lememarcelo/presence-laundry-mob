@@ -188,19 +188,48 @@ src/features/dashboard/
 
 > **Especificação completa:** [FEATURE-013-ranking-agrupamento-geografico.md](./FEATURE-013-ranking-agrupamento-geografico.md)
 
-| ID       | Tarefa                                                      | Status | Responsável | Notas                              |
-| -------- | ----------------------------------------------------------- | ------ | ----------- | ---------------------------------- |
-| M8-RG-01 | Adicionar tipos/interfaces para agregação geográfica        | 🔲     | -           | dashboard.models.ts                |
-| M8-RG-02 | Criar lógica de agregação (hook ou util)                    | 🔲     | -           | Agrupa por região/estado/cidade    |
-| M8-RG-03 | Criar componente DimensaoSelector                           | 🔲     | -           | Segmented: Região \| Estado \| Cidade |
-| M8-RG-04 | Criar componente MetricaVisualizacaoSelector                | 🔲     | -           | Segmented: Faturamento \| Lojas    |
-| M8-RG-05 | Integrar seletores no RankingScreen                         | 🔲     | -           | Acima do ranking list              |
-| M8-RG-06 | Adaptar lista para exibir dados agregados                   | 🔲     | -           | Nome, valor, %, barra              |
-| M8-RG-07 | Atualizar useFiltersStore com novos estados                 | 🔲     | -           | rankingDimensao, rankingMetrica    |
-| M8-RG-08 | Verificar/adaptar endpoint do backend                       | 🔲     | -           | Dados geográficos das lojas        |
-| M8-RG-09 | Testes manuais com dados reais                              | 🔲     | -           | Validar agregação                  |
+### Backend API (Delphi)
 
-**Progresso M8-RG:** 0/9 (0%)
+| ID        | Tarefa                                                      | Status | Responsável | Notas                                     |
+| --------- | ----------------------------------------------------------- | ------ | ----------- | ----------------------------------------- |
+| M8-RG-B01 | Criar `TRankingGroupBy` enum no repository                  | ✅     | AI          | `rgRegiao, rgEstado, rgCidade`            |
+| M8-RG-B02 | Implementar `FetchRankingGeografico` com agregação SQL      | ✅     | AI          | Query com GROUP BY dinâmico               |
+| M8-RG-B03 | Criar helpers: `UFToRegiao`, `GetNomeEstado`, etc.          | ✅     | AI          | Mapeamento UF→Região, nomes sem acentos   |
+| M8-RG-B04 | Implementar `RemoveAcentos` para normalização               | ✅     | AI          | Via `StringReplace` (fix compilação)      |
+| M8-RG-B05 | Adicionar `GetRankingGeografico` no service com cache       | ✅     | AI          | Cache 5min, key por parâmetros            |
+| M8-RG-B06 | Criar handler HTTP `RankingGeografico` no controller        | ✅     | AI          | Valida groupBy e metrica                  |
+| M8-RG-B07 | Registrar rota `/ranking/geografico` em uRoutes             | ✅     | AI          | GET com query params                      |
+
+**Progresso Backend M8-RG:** 7/7 (100%) ✅
+
+### Frontend Web (React + DevExtreme)
+
+| ID        | Tarefa                                                      | Status | Responsável | Notas                                     |
+| --------- | ----------------------------------------------------------- | ------ | ----------- | ----------------------------------------- |
+| M8-RG-W01 | Adicionar tipos em `dashboard.models.ts`                    | ✅     | AI          | `RankingGroupBy`, `ItemRankingGeografico` |
+| M8-RG-W02 | Criar função `getRankingGeografico` no service              | ✅     | AI          | Chamada API com params                    |
+| M8-RG-W03 | Modificar `GeographicChart.tsx` com dual selectors          | ✅     | AI          | Dimensão (roxo) + Métrica (azul)          |
+| M8-RG-W04 | Adicionar estilos em `GeographicChart.scss`                 | ✅     | AI          | `.controls-row`, cores dos toggles        |
+| M8-RG-W05 | Passar props `dataInicio/dataFim` do Dashboard              | ✅     | AI          | `Dashboard.tsx` atualizado                |
+| M8-RG-W06 | Implementar mapeamento de nomes de estados                  | ✅     | AI          | `NOMES_ESTADOS` + `corrigirNome()`        |
+| M8-RG-W07 | Testar com dados reais                                      | ✅     | AI          | Validado em produção                      |
+
+**Progresso Frontend Web M8-RG:** 7/7 (100%) ✅
+
+### Frontend Mobile (React Native) - PENDENTE
+
+| ID        | Tarefa                                                      | Status | Responsável | Notas                                     |
+| --------- | ----------------------------------------------------------- | ------ | ----------- | ----------------------------------------- |
+| M8-RG-M01 | Adicionar tipos/interfaces para agregação geográfica        | 🔲     | -           | dashboard.models.ts                       |
+| M8-RG-M02 | Criar lógica de chamada API (hook ou util)                  | 🔲     | -           | Usa endpoint já existente                 |
+| M8-RG-M03 | Criar componente DimensaoSelector                           | 🔲     | -           | Segmented: Região \| Estado \| Cidade       |
+| M8-RG-M04 | Criar componente MetricaVisualizacaoSelector                | 🔲     | -           | Segmented: Faturamento \| Lojas           |
+| M8-RG-M05 | Integrar seletores no RankingScreen                         | 🔲     | -           | Acima do ranking list                     |
+| M8-RG-M06 | Adaptar lista para exibir dados agregados                   | 🔲     | -           | Nome, valor, %, barra                     |
+| M8-RG-M07 | Atualizar useFiltersStore com novos estados                 | 🔲     | -           | rankingDimensao, rankingMetrica           |
+| M8-RG-M08 | Testes manuais com dados reais                              | 🔲     | -           | Validar agregação                         |
+
+**Progresso Frontend Mobile M8-RG:** 0/8 (0%)
 
 ---
 
@@ -215,8 +244,8 @@ src/features/dashboard/
 | M5: Ranking                  | 4      | 4         | 100%      |
 | M6: UX/UI                    | 5      | 5         | 100%      |
 | M7: Autenticação             | 3      | 2 + 1 N/A | 100%      |
-| **M8: Ranking Geográfico**   | **9**  | **0**     | **0%**    |
-| **Total**                    | **45** | **35**    | **78%**   |
+| **M8: Ranking Geográfico**   | **22** | **14**    | **64%**   |
+| **Total**                    | **58** | **49**    | **84%**   |
 
 ---
 
@@ -224,6 +253,9 @@ src/features/dashboard/
 
 | Data       | Alterações                                                           |
 | ---------- | -------------------------------------------------------------------- |
+| 2025-01-06 | M8-RG Backend 100% concluído (7 tarefas)                             |
+| 2025-01-06 | M8-RG Frontend Web 100% concluído (7 tarefas)                        |
+| 2025-01-06 | Reorganização M8-RG em Backend/Web/Mobile                            |
 | 2025-01-05 | Adicionado Milestone 8 (Ranking com Agrupamento Geográfico)          |
 | 2025-12-24 | Criação do backlog                                                   |
 | 2025-12-24 | M1-G-001 a M1-G-006 concluídos (componentes de filtros)              |

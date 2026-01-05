@@ -3,13 +3,15 @@
 > **Documento de Especificação**  
 > Módulo: Dashboard Mobile - Aba Ranking  
 > Criado em: 2025-01-05  
-> Status: 🔲 Planejado
+> Última atualização: 2025-01-06  
+> Status: ✅ Implementado (Backend + Frontend Web)
 
 **Documentos Relacionados:**
 
 - [FEATURE-013 - Dashboard Mobile Spec](./FEATURE-013-dashboard-mobile-spec.md)
 - [FEATURE-013 - Dashboard Mobile](./FEATURE-013-dashboard-mobile.md)
 - [Backlog de Tarefas Mobile](./FEATURE-013-Dashboard-Mobile-Backlog.md)
+- [Guia do Franqueado](../../../presence-laundry/docs/guides/GUIA-DASHBOARD-FRANQUEADO.md)
 
 ---
 
@@ -410,8 +412,171 @@ A imagem anexada mostra o componente "Distribuição por Região" do dashboard w
 
 ---
 
+## 12. Implementação Realizada
+
+### 12.1 Resumo
+
+A feature foi implementada com agregação **no backend** (Opção B da seção 4.1), proporcionando melhor performance e reutilização entre plataformas.
+
+| Componente       | Status | Detalhes                                        |
+| ---------------- | ------ | ----------------------------------------------- |
+| **Backend API**  | ✅     | Endpoint `/ranking/geografico` implementado    |
+| **Frontend Web** | ✅     | `GeographicChart.tsx` com dual selectors       |
+| **Frontend Mob** | 🔲     | Pendente implementação                         |
+
+### 12.2 Backend Implementado
+
+#### Arquivos Modificados
+
+| Arquivo                      | Alteração                                          |
+| ---------------------------- | -------------------------------------------------- |
+| `uRankingRepository.pas`     | `TRankingGroupBy` enum, `FetchRankingGeografico`   |
+| `uRankingService.pas`        | `GetRankingGeografico` com cache 5min              |
+| `uRankingController.pas`     | Handler HTTP `RankingGeografico`                   |
+| `uRoutes.pas`                | Registro da rota `/ranking/geografico`             |
+
+#### Endpoint Final
+
+```
+GET /api/v1/ranking/geografico?dtIni=YYYY-MM-DD&dtFim=YYYY-MM-DD&groupBy={regiao|estado|cidade}&metrica={faturamento|lojas}
+```
+
+#### Response Schema
+
+```json
+{
+  "success": true,
+  "data": {
+    "titulo": "Ranking por Estado",
+    "groupBy": "estado",
+    "metrica": "faturamento",
+    "periodo": {
+      "inicio": "2024-01-01",
+      "fim": "2024-12-31"
+    },
+    "totalItens": 12,
+    "totalLojas": 85,
+    "totalFaturamento": 2500000.00,
+    "itens": [
+      {
+        "id": "SP",
+        "nome": "Sao Paulo",
+        "posicao": 1,
+        "faturamento": 800000.00,
+        "lojas": 25,
+        "percentual": 32.0,
+        "percentualTop": 100.0
+      }
+    ]
+  },
+  "_source": "cache|database",
+  "timestamp": "2024-01-15T10:30:00"
+}
+```
+
+#### Funções Auxiliares Implementadas
+
+- `UFToRegiao(UF)` - Mapeia UF para macrorregião
+- `GetNomeRegiao(regiao)` - Retorna nome da região
+- `GetNomeEstado(UF)` - Retorna nome do estado (sem acentos)
+- `FormatNomeCidade(cidade)` - Formata cidade em title case
+- `RemoveAcentos(texto)` - Normaliza texto removendo acentos
+
+#### Normalização de Dados
+
+Para evitar duplicatas causadas por acentuação inconsistente no banco de dados:
+- Chaves de agregação são normalizadas: `UpperCase(RemoveAcentos(Trim(CIDADE)))`
+- Nomes são formatados para exibição com `FormatNomeCidade`
+- Estados retornam nomes sem acentos; frontend mapeia para nomes corretos
+
+### 12.3 Frontend Web Implementado
+
+#### Arquivos Modificados
+
+| Arquivo                    | Alteração                                     |
+| -------------------------- | --------------------------------------------- |
+| `dashboard.models.ts`      | Tipos `RankingGroupBy`, `ItemRankingGeografico`, etc. |
+| `dashboard.service.ts`     | Função `getRankingGeografico()`               |
+| `GeographicChart.tsx`      | Dual selectors, integração API, correção nomes |
+| `GeographicChart.scss`     | Estilos para seletores                        |
+| `Dashboard.tsx`            | Props `dataInicio`/`dataFim` para chart       |
+
+#### Novos Tipos TypeScript
+
+```typescript
+type RankingGroupBy = 'regiao' | 'estado' | 'cidade';
+type RankingMetrica = 'faturamento' | 'lojas';
+
+interface ItemRankingGeografico {
+  id: string;
+  nome: string;
+  posicao: number;
+  faturamento: number;
+  lojas: number;
+  percentual: number;
+  percentualTop: number;
+}
+
+interface DadosRankingGeografico {
+  titulo: string;
+  groupBy: RankingGroupBy;
+  metrica: RankingMetrica;
+  periodo: { inicio: string; fim: string };
+  totalItens: number;
+  totalLojas: number;
+  totalFaturamento: number;
+  itens: ItemRankingGeografico[];
+}
+```
+
+#### UI Implementada
+
+```
+┌─────────────────────────────────────────────┐
+│  Distribuição por Região                    │
+├─────────────────────────────────────────────┤
+│  ┌─────────┬─────────┬─────────┐            │
+│  │ Região  │ Estado  │ Cidade  │  ← Roxo    │
+│  └─────────┴─────────┴─────────┘            │
+│                                             │
+│  ┌──────────────┬─────────┐                 │
+│  │ Faturamento  │  Lojas  │   ← Azul       │
+│  └──────────────┴─────────┘                 │
+├─────────────────────────────────────────────┤
+│  12 estados • R$ 2.500.000,00               │
+│                                             │
+│  SP São Paulo     R$ 800.000   32%  ████████│
+│  RJ Rio de Janeiro R$ 400.000  16%  ████    │
+│  ...                                        │
+└─────────────────────────────────────────────┘
+```
+
+#### Correção de Nomes de Estados
+
+Frontend implementa mapeamento para corrigir nomes que chegam sem acento:
+
+```typescript
+const NOMES_ESTADOS: Record<string, string> = {
+  'Sao Paulo': 'São Paulo',
+  'Espirito Santo': 'Espírito Santo',
+  'Goias': 'Goiás',
+  // ...
+};
+```
+
+### 12.4 Bug Fixes Aplicados
+
+| Bug | Causa | Solução |
+| --- | ----- | ------- |
+| Nomes de estados com encoding quebrado | Acentos UTF-8 não tratados | Backend retorna sem acentos; frontend mapeia |
+| Cidades duplicadas (São Paulo 2x) | Inconsistência no banco | Normalização com `RemoveAcentos + UpperCase` |
+| Erro de compilação Delphi | Char array com `StringReplace` | Reescrita usando calls sequenciais de `StringReplace` |
+
+---
+
 ## Histórico de Revisões
 
 | Data       | Versão | Descrição                                   |
 | ---------- | ------ | ------------------------------------------- |
 | 2025-01-05 | 1.0    | Criação do documento de especificação       |
+| 2025-01-06 | 2.0    | Implementação backend + frontend web concluída |
